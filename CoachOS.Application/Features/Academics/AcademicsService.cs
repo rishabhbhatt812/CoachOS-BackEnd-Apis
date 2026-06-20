@@ -214,29 +214,42 @@ namespace CoachOS.Application.Features.Academics
             await _unitOfWork.SaveChangesAsync();
 
             // Handle multiple subjects / teacher mapping
-            Guid? teacherProfileId = null;
-            if (request.TeacherUserId.HasValue && request.TeacherUserId.Value != Guid.Empty)
-            {
-                var profiles = await _unitOfWork.Repository<TeacherProfile>().GetAllAsync();
-                var teacherProfile = profiles.FirstOrDefault(tp => tp.UserId == request.TeacherUserId.Value);
-                if (teacherProfile != null)
-                {
-                    teacherProfileId = teacherProfile.Id;
-                }
-            }
-
+            var profiles = await _unitOfWork.Repository<TeacherProfile>().GetAllAsync();
             var subjectIdsToAssign = request.SubjectIds ?? new List<Guid>();
             if (!subjectIdsToAssign.Any() && request.SubjectId.HasValue && request.SubjectId.Value != Guid.Empty)
             {
                 subjectIdsToAssign.Add(request.SubjectId.Value);
             }
 
-            foreach (var subId in subjectIdsToAssign)
+            var mappings = request.SubjectTeacherMappings ?? new List<SubjectTeacherMappingDto>();
+            if (!mappings.Any() && subjectIdsToAssign.Any())
             {
+                foreach (var subId in subjectIdsToAssign)
+                {
+                    mappings.Add(new SubjectTeacherMappingDto
+                    {
+                        SubjectId = subId,
+                        TeacherUserId = request.TeacherUserId
+                    });
+                }
+            }
+
+            foreach (var mapping in mappings)
+            {
+                Guid? teacherProfileId = null;
+                if (mapping.TeacherUserId.HasValue && mapping.TeacherUserId.Value != Guid.Empty)
+                {
+                    var teacherProfile = profiles.FirstOrDefault(tp => tp.UserId == mapping.TeacherUserId.Value);
+                    if (teacherProfile != null)
+                    {
+                        teacherProfileId = teacherProfile.Id;
+                    }
+                }
+
                 var tb = new TeacherBatch
                 {
                     BatchId = batch.Id,
-                    SubjectId = subId,
+                    SubjectId = mapping.SubjectId,
                     TeacherProfileId = teacherProfileId,
                     AssignedOn = DateTime.UtcNow,
                     IsActive = true
@@ -244,7 +257,7 @@ namespace CoachOS.Application.Features.Academics
                 await _unitOfWork.Repository<TeacherBatch>().AddAsync(tb);
             }
 
-            if (subjectIdsToAssign.Any())
+            if (mappings.Any())
             {
                 await _unitOfWork.SaveChangesAsync();
             }
@@ -267,15 +280,17 @@ namespace CoachOS.Application.Features.Academics
                 dto.SubjectName = string.Join(", ", dto.SubjectNames);
             }
 
-            if (request.TeacherUserId.HasValue)
-            {
-                dto.TeacherUserId = request.TeacherUserId;
-                var users = await _unitOfWork.Repository<User>().GetAllAsync();
-                var user = users.FirstOrDefault(u => u.Id == request.TeacherUserId.Value);
-                dto.TeacherName = user?.FullName ?? string.Empty;
-                dto.TeacherUserIds = new List<Guid> { request.TeacherUserId.Value };
-                dto.TeacherNames = new List<string> { dto.TeacherName };
-            }
+            var users = await _unitOfWork.Repository<User>().GetAllAsync();
+            var mappingUserIds = mappings.Where(m => m.TeacherUserId.HasValue).Select(m => m.TeacherUserId!.Value).Distinct().ToList();
+            dto.TeacherUserIds = mappingUserIds;
+            dto.TeacherNames = users.Where(u => mappingUserIds.Contains(u.Id)).Select(u => u.FullName).ToList();
+            dto.TeacherName = dto.TeacherNames.Any() ? string.Join(", ", dto.TeacherNames) : "None";
+            if (dto.TeacherUserIds.Any()) dto.TeacherUserId = dto.TeacherUserIds.First();
+
+            dto.SubjectTeacherMappings = mappings.Select(m => new SubjectTeacherMappingDto {
+                SubjectId = m.SubjectId,
+                TeacherUserId = m.TeacherUserId
+            }).ToList();
 
             return ApiResponse<BatchDto>.Ok(dto, "Batch created successfully.");
         }
@@ -307,6 +322,20 @@ namespace CoachOS.Application.Features.Academics
 
                 if (dto.SubjectIds.Any()) dto.SubjectId = dto.SubjectIds.First();
                 if (dto.TeacherUserIds.Any()) dto.TeacherUserId = dto.TeacherUserIds.First();
+
+                dto.SubjectTeacherMappings = bTBs.Select(tb => {
+                    Guid? teacherUserId = null;
+                    if (tb.TeacherProfileId.HasValue) {
+                        var prof = teacherProfiles.FirstOrDefault(tp => tp.Id == tb.TeacherProfileId.Value);
+                        if (prof != null) {
+                            teacherUserId = prof.UserId;
+                        }
+                    }
+                    return new SubjectTeacherMappingDto {
+                        SubjectId = tb.SubjectId,
+                        TeacherUserId = teacherUserId
+                    };
+                }).ToList();
 
                 return dto;
             }).ToList();
@@ -343,6 +372,20 @@ namespace CoachOS.Application.Features.Academics
             if (dto.SubjectIds.Any()) dto.SubjectId = dto.SubjectIds.First();
             if (dto.TeacherUserIds.Any()) dto.TeacherUserId = dto.TeacherUserIds.First();
 
+            dto.SubjectTeacherMappings = teacherBatches.Select(tb => {
+                Guid? teacherUserId = null;
+                if (tb.TeacherProfileId.HasValue) {
+                    var prof = teacherProfiles.FirstOrDefault(tp => tp.Id == tb.TeacherProfileId.Value);
+                    if (prof != null) {
+                        teacherUserId = prof.UserId;
+                    }
+                }
+                return new SubjectTeacherMappingDto {
+                    SubjectId = tb.SubjectId,
+                    TeacherUserId = teacherUserId
+                };
+            }).ToList();
+
             return ApiResponse<BatchDto>.Ok(dto);
         }
 
@@ -355,19 +398,7 @@ namespace CoachOS.Application.Features.Academics
             _unitOfWork.Repository<Batch>().Update(batch);
             await _unitOfWork.SaveChangesAsync();
 
-            // Get teacher profile id if provided
-            Guid? teacherProfileId = null;
-            if (request.TeacherUserId.HasValue && request.TeacherUserId.Value != Guid.Empty)
-            {
-                var profiles = await _unitOfWork.Repository<TeacherProfile>().GetAllAsync();
-                var teacherProfile = profiles.FirstOrDefault(tp => tp.UserId == request.TeacherUserId.Value);
-                if (teacherProfile != null)
-                {
-                    teacherProfileId = teacherProfile.Id;
-                }
-            }
-
-            // Sync subjects
+            var profiles = await _unitOfWork.Repository<TeacherProfile>().GetAllAsync();
             var existingTBs = (await _unitOfWork.Repository<TeacherBatch>().GetAllAsync())
                 .Where(tb => tb.BatchId == batch.Id).ToList();
 
@@ -377,25 +408,47 @@ namespace CoachOS.Application.Features.Academics
                 subjectIdsToAssign.Add(request.SubjectId.Value);
             }
 
-            // Remove no longer assigned
+            var mappings = request.SubjectTeacherMappings ?? new List<SubjectTeacherMappingDto>();
+            if (!mappings.Any() && subjectIdsToAssign.Any())
+            {
+                foreach (var subId in subjectIdsToAssign)
+                {
+                    mappings.Add(new SubjectTeacherMappingDto
+                    {
+                        SubjectId = subId,
+                        TeacherUserId = request.TeacherUserId
+                    });
+                }
+            }
+
+            var activeSubjectIds = mappings.Select(m => m.SubjectId).ToList();
             foreach (var oldTb in existingTBs)
             {
-                if (!subjectIdsToAssign.Contains(oldTb.SubjectId))
+                if (!activeSubjectIds.Contains(oldTb.SubjectId))
                 {
                     _unitOfWork.Repository<TeacherBatch>().Remove(oldTb);
                 }
             }
 
-            // Add or update
-            foreach (var subId in subjectIdsToAssign)
+            foreach (var mapping in mappings)
             {
-                var existing = existingTBs.FirstOrDefault(tb => tb.SubjectId == subId);
+                Guid? teacherProfileId = null;
+                if (mapping.TeacherUserId.HasValue && mapping.TeacherUserId.Value != Guid.Empty)
+                {
+                    var teacherProfile = profiles.FirstOrDefault(tp => tp.UserId == mapping.TeacherUserId.Value);
+                    if (teacherProfile != null)
+                    {
+                        teacherProfileId = teacherProfile.Id;
+                    }
+                }
+
+                var existing = existingTBs.FirstOrDefault(tb => tb.SubjectId == mapping.SubjectId);
                 if (existing == null)
                 {
                     var newTb = new TeacherBatch
                     {
                         BatchId = batch.Id,
-                        SubjectId = subId,
+                        SubjectId = mapping.SubjectId,
                         TeacherProfileId = teacherProfileId,
                         AssignedOn = DateTime.UtcNow,
                         IsActive = true
@@ -405,6 +458,7 @@ namespace CoachOS.Application.Features.Academics
                 else
                 {
                     existing.TeacherProfileId = teacherProfileId;
+                    existing.IsActive = true;
                     _unitOfWork.Repository<TeacherBatch>().Update(existing);
                 }
             }
@@ -412,8 +466,41 @@ namespace CoachOS.Application.Features.Academics
             await _unitOfWork.SaveChangesAsync();
 
             var dto = batch.Adapt<BatchDto>();
-            dto.SubjectIds = subjectIdsToAssign;
-            
+            var course = await _unitOfWork.Repository<Course>().GetByIdAsync(batch.CourseId);
+            dto.CourseName = course?.Name ?? "Unknown";
+
+            var updatedTBs = (await _unitOfWork.Repository<TeacherBatch>().GetAllAsync())
+                .Where(tb => tb.BatchId == batch.Id && tb.IsActive).ToList();
+            var subjects = await _unitOfWork.Repository<Subject>().GetAllAsync();
+            var users = await _unitOfWork.Repository<User>().GetAllAsync();
+
+            dto.SubjectIds = updatedTBs.Select(tb => tb.SubjectId).Distinct().ToList();
+            dto.SubjectNames = subjects.Where(s => dto.SubjectIds.Contains(s.Id)).Select(s => s.Name).ToList();
+            dto.SubjectName = dto.SubjectNames.Any() ? string.Join(", ", dto.SubjectNames) : "None";
+
+            var profileIds = updatedTBs.Where(tb => tb.TeacherProfileId.HasValue).Select(tb => tb.TeacherProfileId!.Value).Distinct().ToList();
+            var matchingProfiles = profiles.Where(tp => profileIds.Contains(tp.Id)).ToList();
+            dto.TeacherUserIds = matchingProfiles.Select(tp => tp.UserId).Distinct().ToList();
+            dto.TeacherNames = users.Where(u => dto.TeacherUserIds.Contains(u.Id)).Select(u => u.FullName).ToList();
+            dto.TeacherName = dto.TeacherNames.Any() ? string.Join(", ", dto.TeacherNames) : "None";
+
+            dto.SubjectTeacherMappings = updatedTBs.Select(tb => {
+                Guid? teacherUserId = null;
+                if (tb.TeacherProfileId.HasValue) {
+                    var prof = profiles.FirstOrDefault(tp => tp.Id == tb.TeacherProfileId.Value);
+                    if (prof != null) {
+                        teacherUserId = prof.UserId;
+                    }
+                }
+                return new SubjectTeacherMappingDto {
+                    SubjectId = tb.SubjectId,
+                    TeacherUserId = teacherUserId
+                };
+            }).ToList();
+
+            if (dto.SubjectIds.Any()) dto.SubjectId = dto.SubjectIds.First();
+            if (dto.TeacherUserIds.Any()) dto.TeacherUserId = dto.TeacherUserIds.First();
+
             return ApiResponse<BatchDto>.Ok(dto, "Batch updated successfully.");
         }
 

@@ -17,6 +17,7 @@ namespace CoachOS.Domain.Academic
         public int Capacity { get; set; }
         public string BatchStatus { get; set; } = "Upcoming"; // Upcoming, Running, Completed, Cancelled
         public string? RoomNumber { get; set; }
+        public decimal? DefaultFee { get; set; }
         public string? Notes { get; set; }
         public bool IsActive { get; set; } = true;
 

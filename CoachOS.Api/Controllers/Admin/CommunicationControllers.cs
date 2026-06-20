@@ -8,7 +8,7 @@ namespace CoachOS.Api.Controllers.Admin
 {
     [ApiController]
     [Route("api/admin/[controller]")]
-    [Authorize(Roles = "INSTITUTE_ADMIN,GLOBAL_ADMIN,SUPER_ADMIN")]
+    [Authorize(Roles = "BRANCH_ADMIN,INSTITUTE_ADMIN,GLOBAL_ADMIN,SUPER_ADMIN")]
     [ModuleAccess("COMMUNICATION")]
     public class VacanciesController : ControllerBase
     {
@@ -40,7 +40,7 @@ namespace CoachOS.Api.Controllers.Admin
 
     [ApiController]
     [Route("api/admin/[controller]")]
-    [Authorize(Roles = "INSTITUTE_ADMIN,GLOBAL_ADMIN,SUPER_ADMIN,RECEPTIONIST")]
+    [Authorize(Roles = "BRANCH_ADMIN,INSTITUTE_ADMIN,GLOBAL_ADMIN,SUPER_ADMIN,RECEPTIONIST")]
     [ModuleAccess("COMMUNICATION")]
     public class NoticesController : ControllerBase
     {

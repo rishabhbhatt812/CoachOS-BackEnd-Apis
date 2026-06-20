@@ -36,5 +36,11 @@ namespace CoachOS.Api.Controllers.Teacher
         {
             return Ok(await _attendanceService.DeleteAttendanceSessionAsync(id));
         }
+
+        [HttpPost("save")]
+        public async Task<IActionResult> SaveAttendance([FromBody] CoachOS.Application.Features.Learning.Dtos.SaveBatchAttendanceRequest request)
+        {
+            return Ok(await _attendanceService.SaveAttendanceAsync(request));
+        }
     }
 }

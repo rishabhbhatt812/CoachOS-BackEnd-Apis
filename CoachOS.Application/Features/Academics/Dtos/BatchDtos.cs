@@ -2,6 +2,12 @@ using System;
 
 namespace CoachOS.Application.Features.Academics.Dtos
 {
+    public class SubjectTeacherMappingDto
+    {
+        public Guid SubjectId { get; set; }
+        public Guid? TeacherUserId { get; set; }
+    }
+
     public class BatchDto
     {
         public Guid Id { get; set; }
@@ -16,6 +22,7 @@ namespace CoachOS.Application.Features.Academics.Dtos
         public List<string> SubjectNames { get; set; } = new List<string>();
         public List<Guid> TeacherUserIds { get; set; } = new List<Guid>();
         public List<string> TeacherNames { get; set; } = new List<string>();
+        public List<SubjectTeacherMappingDto> SubjectTeacherMappings { get; set; } = new List<SubjectTeacherMappingDto>();
         public TimeSpan? StartTime { get; set; }
         public TimeSpan? EndTime { get; set; }
         public DateOnly? StartDate { get; set; }
@@ -35,6 +42,7 @@ namespace CoachOS.Application.Features.Academics.Dtos
         public Guid? SubjectId { get; set; }
         public Guid? TeacherUserId { get; set; }
         public List<Guid> SubjectIds { get; set; } = new List<Guid>();
+        public List<SubjectTeacherMappingDto>? SubjectTeacherMappings { get; set; }
         public TimeSpan? StartTime { get; set; }
         public TimeSpan? EndTime { get; set; }
         public DateOnly? StartDate { get; set; }
@@ -54,6 +62,7 @@ namespace CoachOS.Application.Features.Academics.Dtos
         public Guid? SubjectId { get; set; }
         public Guid? TeacherUserId { get; set; }
         public List<Guid> SubjectIds { get; set; } = new List<Guid>();
+        public List<SubjectTeacherMappingDto>? SubjectTeacherMappings { get; set; }
         public TimeSpan? StartTime { get; set; }
         public TimeSpan? EndTime { get; set; }
         public DateOnly? StartDate { get; set; }

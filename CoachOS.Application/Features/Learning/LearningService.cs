@@ -83,6 +83,53 @@ namespace CoachOS.Application.Features.Learning
             await _unitOfWork.SaveChangesAsync();
             return ApiResponse<bool>.Ok(true, "Attendance session deleted.");
         }
+
+        public async Task<ApiResponse<bool>> SaveAttendanceAsync(SaveBatchAttendanceRequest request)
+        {
+            var targetDate = DateOnly.FromDateTime(request.AttendanceDate);
+            var sessions = await _unitOfWork.Repository<AttendanceSession>().GetAllAsync();
+            var session = sessions.FirstOrDefault(s => s.BatchId == request.BatchId && s.AttendanceDate == targetDate);
+
+            if (session == null)
+            {
+                session = new AttendanceSession
+                {
+                    BatchId = request.BatchId,
+                    AttendanceDate = targetDate,
+                    TakenByUserId = _currentUserService.UserId ?? Guid.Empty
+                };
+                await _unitOfWork.Repository<AttendanceSession>().AddAsync(session);
+                await _unitOfWork.SaveChangesAsync();
+            }
+
+            var existingRecords = await _unitOfWork.Repository<AttendanceRecord>().GetAllAsync();
+            var sessionRecords = existingRecords.Where(r => r.AttendanceSessionId == session.Id).ToList();
+
+            foreach (var rec in request.Records)
+            {
+                var existingRecord = sessionRecords.FirstOrDefault(r => r.StudentId == rec.StudentId);
+                if (existingRecord != null)
+                {
+                    existingRecord.Status = rec.Status;
+                    existingRecord.Remark = rec.Remark;
+                    _unitOfWork.Repository<AttendanceRecord>().Update(existingRecord);
+                }
+                else
+                {
+                    var newRecord = new AttendanceRecord
+                    {
+                        AttendanceSessionId = session.Id,
+                        StudentId = rec.StudentId,
+                        Status = rec.Status,
+                        Remark = rec.Remark
+                    };
+                    await _unitOfWork.Repository<AttendanceRecord>().AddAsync(newRecord);
+                }
+            }
+
+            await _unitOfWork.SaveChangesAsync();
+            return ApiResponse<bool>.Ok(true, "Attendance saved successfully.");
+        }
     }
 
     public class LearningService : ILearningService

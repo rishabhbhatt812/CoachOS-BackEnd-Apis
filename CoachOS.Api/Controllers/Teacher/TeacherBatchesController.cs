@@ -57,7 +57,26 @@ namespace CoachOS.Api.Controllers.Teacher
         [HttpGet("{batchId}/students")]
         public async Task<IActionResult> GetBatchStudents(Guid batchId)
         {
-            throw new NotImplementedException();
+            var studentBatches = await _unitOfWork.Repository<CoachOS.Domain.Student.StudentBatch>().GetAllAsync();
+            var activeStudentIds = studentBatches
+                .Where(sb => sb.BatchId == batchId && sb.IsActive)
+                .Select(sb => sb.StudentId)
+                .ToList();
+
+            var students = await _unitOfWork.Repository<CoachOS.Domain.Student.Student>().GetAllAsync();
+            var batchStudents = students
+                .Where(s => activeStudentIds.Contains(s.Id))
+                .Select(s => new {
+                    id = s.Id,
+                    studentCode = s.StudentCode,
+                    fullName = s.FullName,
+                    mobile = s.Mobile,
+                    email = s.Email,
+                    status = s.Status
+                })
+                .ToList();
+
+            return Ok(CoachOS.Shared.Responses.ApiResponse<object>.Ok(batchStudents));
         }
 
         [HttpGet("{batchId}/performance")]

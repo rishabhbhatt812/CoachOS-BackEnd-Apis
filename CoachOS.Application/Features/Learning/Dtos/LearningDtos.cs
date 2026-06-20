@@ -21,6 +21,20 @@ namespace CoachOS.Application.Features.Learning.Dtos
         public Guid TakenByUserId { get; set; }
     }
 
+    public class SaveBatchAttendanceRequest
+    {
+        public Guid BatchId { get; set; }
+        public DateTime AttendanceDate { get; set; }
+        public System.Collections.Generic.List<StudentAttendanceRecordDto> Records { get; set; } = new();
+    }
+
+    public class StudentAttendanceRecordDto
+    {
+        public Guid StudentId { get; set; }
+        public string Status { get; set; } = "Present";
+        public string? Remark { get; set; }
+    }
+
     public class NoteDto
     {
         public Guid Id { get; set; }

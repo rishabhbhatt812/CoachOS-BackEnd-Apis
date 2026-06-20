@@ -11,6 +11,7 @@ namespace CoachOS.Application.Interfaces.Services
         Task<ApiResponse<AttendanceSessionDto>> CreateAttendanceSessionAsync(CreateAttendanceSessionRequest request);
         Task<ApiResponse<CoachOS.Shared.Responses.PagedResult<AttendanceSessionDto>>> GetAttendanceSessionsAsync(CoachOS.Shared.Requests.PaginationParams paginationParams);
         Task<ApiResponse<bool>> DeleteAttendanceSessionAsync(Guid id);
+        Task<ApiResponse<bool>> SaveAttendanceAsync(SaveBatchAttendanceRequest request);
     }
 
     public interface ILearningService
