@@ -109,7 +109,7 @@ namespace CoachOS.Application.Features.Learning
             dto.BatchName = batch?.Name ?? "Unknown";
             dto.SubjectName = subject?.Name ?? "Unknown";
             dto.FilePath = $"/api/notes/download/{note.Id}";
-            dto.IsExpired = (DateTime.UtcNow - note.CreatedAt).TotalHours > 48;
+            dto.IsExpired = false;
 
             return ApiResponse<NoteDto>.Ok(dto, "Note created.");
         }
@@ -129,7 +129,7 @@ namespace CoachOS.Application.Features.Learning
                 dto.BatchName = batches.FirstOrDefault(b => b.Id == n.BatchId)?.Name ?? "Unknown";
                 dto.SubjectName = subjects.FirstOrDefault(s => s.Id == n.SubjectId)?.Name ?? "Unknown";
                 dto.FilePath = $"/api/notes/download/{n.Id}";
-                dto.IsExpired = (DateTime.UtcNow - n.CreatedAt).TotalHours > 48;
+                dto.IsExpired = false;
                 return dto;
             }).ToList();
 

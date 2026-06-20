@@ -196,7 +196,7 @@ namespace CoachOS.Application.Features.StudentPortal
             var subjects = await _unitOfWork.Repository<Subject>().GetAllAsync();
 
             var result = studentNotes.Select(n => {
-                var isExpired = (DateTime.UtcNow - n.CreatedAt).TotalHours > 48;
+                var isExpired = false;
                 return new {
                     n.Id,
                     n.Title,

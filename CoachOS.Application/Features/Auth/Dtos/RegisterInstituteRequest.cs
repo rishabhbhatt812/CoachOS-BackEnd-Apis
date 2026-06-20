@@ -11,6 +11,7 @@ namespace CoachOS.Application.Features.Auth.Dtos
         public string InstituteName { get; set; } = string.Empty;
         public string? ShortName { get; set; }
         public string? Logo { get; set; }
+        public Microsoft.AspNetCore.Http.IFormFile? LogoFile { get; set; }
         public string? Description { get; set; }
 
         // Contact Information

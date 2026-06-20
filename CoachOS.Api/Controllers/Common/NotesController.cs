@@ -26,17 +26,13 @@ namespace CoachOS.Api.Controllers.Common
         [AllowAnonymous]
         public async Task<IActionResult> DownloadFile(Guid id)
         {
-            var note = await _unitOfWork.Repository<Note>().GetByIdAsync(id);
+            var note = await _unitOfWork.Repository<Note>().FirstOrDefaultAsync(n => n.Id == id, ignoreQueryFilters: true);
             if (note == null)
             {
                 return NotFound("Study material not found.");
             }
 
-            var age = DateTime.UtcNow - note.CreatedAt;
-            if (age.TotalHours > 48)
-            {
-                return BadRequest("This study material download has expired (48 hours limit).");
-            }
+
 
             try
             {

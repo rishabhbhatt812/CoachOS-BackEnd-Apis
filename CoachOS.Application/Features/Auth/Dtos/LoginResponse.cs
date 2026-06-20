@@ -7,7 +7,7 @@ namespace CoachOS.Application.Features.Auth.Dtos
     public class LoginResponse
     {
         public Guid UserId { get; set; }
-        public Guid InstituteId { get; set; }
+        public Guid? InstituteId { get; set; }
         public string FullName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string RoleCode { get; set; } = string.Empty;
@@ -15,5 +15,15 @@ namespace CoachOS.Application.Features.Auth.Dtos
         public string AccessToken { get; set; } = string.Empty;
         public int ExpiresInMinutes { get; set; }
         public bool IsPasswordChanged { get; set; }
+
+        // Branding and Branch Details
+        public string? InstituteName { get; set; }
+        public string? InstituteLogoUrl { get; set; }
+        public Guid? BranchId { get; set; }
+        public string? BranchName { get; set; }
+
+        // Aliases for compatibility
+        public string Token => AccessToken;
+        public string Role => RoleCode;
     }
 }

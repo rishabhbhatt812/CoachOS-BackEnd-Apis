@@ -1,6 +1,7 @@
 using CoachOS.Application.Features.Auth.Dtos;
 using CoachOS.Application.Interfaces.Repositories;
 using CoachOS.Application.Interfaces.Services;
+using Microsoft.AspNetCore.Http;
 using CoachOS.Application.Helpers;
 using CoachOS.Domain.Identity;
 using CoachOS.Domain.Tenancy;
@@ -16,16 +17,19 @@ public class AuthService : IAuthService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IJwtTokenService _jwtTokenService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly PasswordHasher<User> _passwordHasher = new();
 
     public AuthService(
         IUnitOfWork unitOfWork,
         IJwtTokenService jwtTokenService,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        IHttpContextAccessor httpContextAccessor)
     {
         _unitOfWork = unitOfWork;
         _jwtTokenService = jwtTokenService;
         _currentUserService = currentUserService;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     public async Task<ApiResponse<RegisterInstituteResponse>> RegisterInstituteAsync(RegisterInstituteRequest request)
@@ -91,6 +95,39 @@ public class AuthService : IAuthService
             ReceiptPrefix = "RCPT",
             IsActive = true
         };
+
+        if (request.LogoFile != null && request.LogoFile.Length > 0)
+        {
+            if (request.LogoFile.Length > 2 * 1024 * 1024)
+            {
+                return ApiResponse<RegisterInstituteResponse>.Fail("Logo file size cannot exceed 2 MB.");
+            }
+
+            var ext = System.IO.Path.GetExtension(request.LogoFile.FileName).ToLower();
+            var allowedExts = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+            if (!System.Linq.Enumerable.Contains(allowedExts, ext))
+            {
+                return ApiResponse<RegisterInstituteResponse>.Fail("Invalid logo file format. Only JPG, JPEG, PNG, and WEBP are allowed.");
+            }
+
+            var uploadDir = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot", "uploads", "institutes", institute.Id.ToString(), "logo");
+            if (!System.IO.Directory.Exists(uploadDir))
+            {
+                System.IO.Directory.CreateDirectory(uploadDir);
+            }
+
+            var cleanName = System.IO.Path.GetFileNameWithoutExtension(request.LogoFile.FileName)
+                .Replace(" ", "_");
+            var uniqueFileName = $"{cleanName}_{Guid.NewGuid()}{ext}";
+            var fullPath = System.IO.Path.Combine(uploadDir, uniqueFileName);
+
+            using (var fileStream = new System.IO.FileStream(fullPath, System.IO.FileMode.Create))
+            {
+                await request.LogoFile.CopyToAsync(fileStream);
+            }
+
+            institute.LogoPath = $"uploads/institutes/{institute.Id}/logo/{uniqueFileName}".Replace("\\", "/");
+        }
 
         await _unitOfWork.Repository<Institute>().AddAsync(institute);
 
@@ -220,6 +257,25 @@ public class AuthService : IAuthService
 
         var token = _jwtTokenService.GenerateToken(user, role.Code);
 
+        string? instituteName = null;
+        string? logoPath = null;
+        if (user.InstituteId != Guid.Empty)
+        {
+            var institute = await _unitOfWork.Repository<Institute>().FirstOrDefaultAsync(i => i.Id == user.InstituteId, ignoreQueryFilters: true);
+            if (institute != null)
+            {
+                instituteName = institute.Name;
+                logoPath = institute.LogoPath;
+            }
+        }
+
+        string? branchName = null;
+        if (user.BranchId.HasValue)
+        {
+            var branch = await _unitOfWork.Repository<Branch>().FirstOrDefaultAsync(b => b.Id == user.BranchId.Value, ignoreQueryFilters: true);
+            branchName = branch?.Name;
+        }
+
         var response = new LoginResponse
         {
             UserId = user.Id,
@@ -229,10 +285,28 @@ public class AuthService : IAuthService
             RoleCode = role.Code,
             AccessToken = token,
             ExpiresInMinutes = 60,
-            IsPasswordChanged = user.IsPasswordChanged
+            IsPasswordChanged = user.IsPasswordChanged,
+            InstituteName = instituteName,
+            InstituteLogoUrl = GetAbsoluteUrl(logoPath),
+            BranchId = user.BranchId,
+            BranchName = branchName
         };
 
         return ApiResponse<LoginResponse>.Ok(response, "Login successful.");
+    }
+
+    private string GetAbsoluteUrl(string? relativePath)
+    {
+        if (string.IsNullOrEmpty(relativePath)) return "";
+        if (relativePath.StartsWith("http://") || relativePath.StartsWith("https://"))
+            return relativePath;
+
+        var httpContext = _httpContextAccessor.HttpContext;
+        if (httpContext == null) return relativePath;
+
+        var request = httpContext.Request;
+        var baseUri = $"{request.Scheme}://{request.Host}{request.PathBase}";
+        return $"{baseUri}/{relativePath.TrimStart('/')}";
     }
 
     public async Task<ApiResponse<CreateUserResponse>> CreateUserAsync(CreateUserRequest request)

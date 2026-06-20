@@ -37,7 +37,8 @@ namespace CoachOS.Infrastructure.Services
 
         public async Task<byte[]> GetFileAsync(string filePath)
         {
-            var fullPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", filePath.Replace("/", "\\"));
+            var cleanPath = filePath.Replace("/", "\\").TrimStart('\\');
+            var fullPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", cleanPath);
             if (File.Exists(fullPath))
             {
                 return await File.ReadAllBytesAsync(fullPath);
@@ -47,7 +48,8 @@ namespace CoachOS.Infrastructure.Services
 
         public void DeleteFile(string filePath)
         {
-            var fullPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", filePath.Replace("/", "\\"));
+            var cleanPath = filePath.Replace("/", "\\").TrimStart('\\');
+            var fullPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", cleanPath);
             if (File.Exists(fullPath))
             {
                 File.Delete(fullPath);
