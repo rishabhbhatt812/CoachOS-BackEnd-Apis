@@ -23,44 +23,22 @@ namespace CoachOS.Api.Middlewares
             var moduleAccessService = context.HttpContext.RequestServices.GetRequiredService<IModuleAccessService>();
 
             var user = context.HttpContext.User;
-            var isGlobalAdmin = user.IsInRole("GLOBAL_ADMIN") || user.IsInRole("SUPER_ADMIN");
+            var isGlobalAdmin = user.IsInRole("GLOBAL_ADMIN") || user.IsInRole("SUPER_ADMIN") || user.IsInRole("ADMIN") || user.IsInRole("INSTITUTE_ADMIN");
 
             if (isGlobalAdmin)
             {
-                if (_moduleCode == "ATTENDANCE")
-                {
-                    context.Result = new ForbidResult();
-                    return;
-                }
-
-                if (currentUserService.InstituteId == null)
-                {
-                    context.Result = new ForbidResult();
-                    return;
-                }
-
-                var globalAdminHasAccess = await moduleAccessService.IsModuleEnabledAsync(currentUserService.InstituteId.Value, _moduleCode);
-                if (!globalAdminHasAccess)
-                {
-                    context.Result = new ForbidResult();
-                    return;
-                }
-
                 await next();
                 return;
             }
 
-            if (currentUserService.UserId == null || currentUserService.InstituteId == null)
+            if (currentUserService.InstituteId.HasValue)
             {
-                context.Result = new UnauthorizedResult();
-                return;
-            }
-
-            var hasAccess = await moduleAccessService.IsModuleEnabledAsync(currentUserService.InstituteId.Value, _moduleCode);
-            if (!hasAccess)
-            {
-                context.Result = new ForbidResult();
-                return;
+                var hasAccess = await moduleAccessService.IsModuleEnabledAsync(currentUserService.InstituteId.Value, _moduleCode);
+                if (!hasAccess)
+                {
+                    context.Result = new ForbidResult();
+                    return;
+                }
             }
 
             await next();

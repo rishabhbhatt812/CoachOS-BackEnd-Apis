@@ -46,7 +46,10 @@ namespace CoachOS.Infrastructure.Services
             var headerRow = worksheet.Row(1);
 
             var propertyMap = new Dictionary<int, System.Reflection.PropertyInfo>();
-            for (int col = 1; col <= worksheet.LastCellUsed().Address.ColumnNumber; col++)
+            var lastCell = worksheet.LastCellUsed();
+            if (lastCell == null) return result;
+
+            for (int col = 1; col <= lastCell.Address.ColumnNumber; col++)
             {
                 var headerValue = headerRow.Cell(col).GetString();
                 var prop = properties.FirstOrDefault(p => p.Name.Equals(headerValue, System.StringComparison.OrdinalIgnoreCase));
@@ -56,7 +59,10 @@ namespace CoachOS.Infrastructure.Services
                 }
             }
 
-            for (int row = 2; row <= worksheet.LastRowUsed().RowNumber(); row++)
+            var lastRow = worksheet.LastRowUsed();
+            if (lastRow == null) return result;
+
+            for (int row = 2; row <= lastRow.RowNumber(); row++)
             {
                 var item = new T();
                 foreach (var map in propertyMap)
@@ -67,7 +73,7 @@ namespace CoachOS.Infrastructure.Services
                         var targetType = map.Value.PropertyType;
                         if (targetType.IsGenericType && targetType.GetGenericTypeDefinition() == typeof(System.Nullable<>))
                         {
-                            targetType = System.Nullable.GetUnderlyingType(targetType);
+                            targetType = System.Nullable.GetUnderlyingType(targetType) ?? targetType;
                         }
                         
                         var convertedValue = System.Convert.ChangeType(cellValue, targetType);

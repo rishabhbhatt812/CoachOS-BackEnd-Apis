@@ -25,13 +25,63 @@ namespace CoachOS.Application.Features.Learning
 
         public async Task<ApiResponse<AttendanceSessionDto>> CreateAttendanceSessionAsync(CreateAttendanceSessionRequest request)
         {
-            var session = request.Adapt<AttendanceSession>();
-            if (session.TakenByUserId == Guid.Empty || session.TakenByUserId == default)
+            var dateOnly = DateOnly.FromDateTime(request.AttendanceDate);
+            var existingSessions = await _unitOfWork.Repository<AttendanceSession>().GetAllAsync();
+            var session = existingSessions.FirstOrDefault(s => s.BatchId == request.BatchId && s.AttendanceDate == dateOnly);
+
+            var userId = request.TakenByUserId != Guid.Empty ? request.TakenByUserId : (_currentUserService.UserId ?? Guid.Empty);
+
+            if (session == null)
             {
-                session.TakenByUserId = _currentUserService.UserId ?? Guid.Empty;
+                session = new AttendanceSession
+                {
+                    BatchId = request.BatchId,
+                    AttendanceDate = dateOnly,
+                    TakenByUserId = userId
+                };
+                await _unitOfWork.Repository<AttendanceSession>().AddAsync(session);
+                await _unitOfWork.SaveChangesAsync();
             }
-            await _unitOfWork.Repository<AttendanceSession>().AddAsync(session);
-            await _unitOfWork.SaveChangesAsync();
+            else
+            {
+                session.TakenByUserId = userId;
+                _unitOfWork.Repository<AttendanceSession>().Update(session);
+                await _unitOfWork.SaveChangesAsync();
+            }
+
+            var presentCount = 0;
+            if (request.Students != null && request.Students.Any())
+            {
+                var existingRecords = (await _unitOfWork.Repository<AttendanceRecord>().GetAllAsync())
+                    .Where(r => r.AttendanceSessionId == session.Id)
+                    .ToList();
+
+                foreach (var st in request.Students)
+                {
+                    var status = !string.IsNullOrEmpty(st.Status) ? st.Status : (st.IsPresent ? "Present" : "Absent");
+                    if (status == "Present") presentCount++;
+
+                    var record = existingRecords.FirstOrDefault(r => r.StudentId == st.StudentId);
+                    if (record != null)
+                    {
+                        record.Status = status;
+                        record.Remark = st.Remarks;
+                        _unitOfWork.Repository<AttendanceRecord>().Update(record);
+                    }
+                    else
+                    {
+                        var newRecord = new AttendanceRecord
+                        {
+                            AttendanceSessionId = session.Id,
+                            StudentId = st.StudentId,
+                            Status = status,
+                            Remark = st.Remarks
+                        };
+                        await _unitOfWork.Repository<AttendanceRecord>().AddAsync(newRecord);
+                    }
+                }
+                await _unitOfWork.SaveChangesAsync();
+            }
             
             var dto = session.Adapt<AttendanceSessionDto>();
             var batch = await _unitOfWork.Repository<CoachOS.Domain.Academic.Batch>().GetByIdAsync(session.BatchId);
@@ -39,11 +89,11 @@ namespace CoachOS.Application.Features.Learning
             var studentBatches = await _unitOfWork.Repository<CoachOS.Domain.Student.StudentBatch>().GetAllAsync();
             
             dto.BatchName = batch?.Name ?? "Unknown Batch";
-            dto.TakenByName = user?.FullName ?? "System";
-            dto.PresentCount = 0;
-            dto.TotalStudents = studentBatches.Count(sb => sb.BatchId == session.BatchId && sb.IsActive);
+            dto.TakenByName = user?.FullName ?? "Teacher";
+            dto.PresentCount = presentCount;
+            dto.TotalStudents = request.Students?.Count ?? studentBatches.Count(sb => sb.BatchId == session.BatchId && sb.IsActive);
 
-            return ApiResponse<AttendanceSessionDto>.Ok(dto, "Attendance session created.");
+            return ApiResponse<AttendanceSessionDto>.Ok(dto, "Attendance saved successfully.");
         }
 
         public async Task<ApiResponse<CoachOS.Shared.Responses.PagedResult<AttendanceSessionDto>>> GetAttendanceSessionsAsync(CoachOS.Shared.Requests.PaginationParams paginationParams)

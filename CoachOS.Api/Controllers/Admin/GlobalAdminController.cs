@@ -100,7 +100,7 @@ namespace CoachOS.Api.Controllers.Admin
             }
 
             await _context.SaveChangesAsync();
-            return Ok(ApiResponse<object>.Ok(null, "Institute modules updated successfully."));
+            return Ok(ApiResponse<bool>.Ok(true, "Institute modules updated successfully."));
         }
     }
 }

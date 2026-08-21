@@ -97,5 +97,70 @@ namespace CoachOS.Application.Features.Crm
             await _unitOfWork.SaveChangesAsync();
             return ApiResponse<bool>.Ok(true, "Enquiry deleted successfully.");
         }
+
+        public async Task<ApiResponse<FollowUpDto>> AddFollowUpAsync(CreateFollowUpRequest request)
+        {
+            var enquiry = await _unitOfWork.Repository<Enquiry>().GetByIdAsync(request.EnquiryId);
+            if (enquiry == null) return ApiResponse<FollowUpDto>.Fail("Enquiry not found.");
+
+            var followUp = new FollowUp
+            {
+                EnquiryId = request.EnquiryId,
+                FollowUpDate = request.FollowUpDate,
+                NextFollowUpDate = request.NextFollowUpDate,
+                Remark = request.Remark
+            };
+
+            await _unitOfWork.Repository<FollowUp>().AddAsync(followUp);
+            enquiry.Status = "FollowedUp";
+            _unitOfWork.Repository<Enquiry>().Update(enquiry);
+            await _unitOfWork.SaveChangesAsync();
+
+            var dto = new FollowUpDto
+            {
+                Id = followUp.Id,
+                EnquiryId = followUp.EnquiryId,
+                FollowUpDate = followUp.FollowUpDate,
+                NextFollowUpDate = followUp.NextFollowUpDate,
+                Remark = followUp.Remark
+            };
+
+            return ApiResponse<FollowUpDto>.Ok(dto, "Follow-up added successfully.");
+        }
+
+        public async Task<ApiResponse<DemoClassDto>> ScheduleDemoClassAsync(ScheduleDemoClassRequest request)
+        {
+            var enquiry = await _unitOfWork.Repository<Enquiry>().GetByIdAsync(request.EnquiryId);
+            if (enquiry == null) return ApiResponse<DemoClassDto>.Fail("Enquiry not found.");
+
+            var demo = new DemoClass
+            {
+                EnquiryId = request.EnquiryId,
+                BatchId = request.BatchId,
+                DemoDate = request.DemoDate,
+                Status = "Scheduled",
+                Remark = request.Remark
+            };
+
+            await _unitOfWork.Repository<DemoClass>().AddAsync(demo);
+            enquiry.Status = "DemoScheduled";
+            _unitOfWork.Repository<Enquiry>().Update(enquiry);
+            await _unitOfWork.SaveChangesAsync();
+
+            var batch = request.BatchId.HasValue ? await _unitOfWork.Repository<CoachOS.Domain.Academic.Batch>().GetByIdAsync(request.BatchId.Value) : null;
+
+            var dto = new DemoClassDto
+            {
+                Id = demo.Id,
+                EnquiryId = demo.EnquiryId,
+                BatchId = demo.BatchId,
+                BatchName = batch?.Name ?? "General Demo",
+                DemoDate = demo.DemoDate,
+                Status = demo.Status,
+                Remark = demo.Remark
+            };
+
+            return ApiResponse<DemoClassDto>.Ok(dto, "Demo class scheduled successfully.");
+        }
     }
 }

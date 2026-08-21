@@ -13,5 +13,7 @@ namespace CoachOS.Application.Interfaces.Services
         Task<ApiResponse<EnquiryDto>> GetEnquiryByIdAsync(Guid id);
         Task<ApiResponse<EnquiryDto>> UpdateEnquiryAsync(Guid id, UpdateEnquiryRequest request);
         Task<ApiResponse<bool>> DeleteEnquiryAsync(Guid id);
+        Task<ApiResponse<FollowUpDto>> AddFollowUpAsync(CreateFollowUpRequest request);
+        Task<ApiResponse<DemoClassDto>> ScheduleDemoClassAsync(ScheduleDemoClassRequest request);
     }
 }

@@ -68,10 +68,10 @@ public class AuthController : ControllerBase
 
         var enabledModules = await context.OrganizationModules
             .IgnoreQueryFilters()
-            .Where(om => om.InstituteId == currentUserService.InstituteId && om.IsEnabled && !om.IsDeleted && !om.Module.IsDeleted)
+            .Where(om => om.InstituteId == currentUserService.InstituteId && om.IsEnabled && !om.IsDeleted && om.Module != null && !om.Module.IsDeleted)
             .Select(om => new
             {
-                om.Module.Id,
+                om.Module!.Id,
                 ModuleName = om.Module.ModuleName,
                 ModuleCode = om.Module.ModuleCode,
                 Icon = om.Module.Icon,

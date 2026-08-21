@@ -81,8 +81,8 @@ namespace CoachOS.Api.Controllers.Common
 
             var enabledModules = await context.OrganizationModules
                 .IgnoreQueryFilters()
-                .Where(im => im.InstituteId == currentUserService.InstituteId && im.IsEnabled && !im.IsDeleted && !im.Module.IsDeleted)
-                .Select(im => im.Module.ModuleCode)
+                .Where(im => im.InstituteId == currentUserService.InstituteId && im.IsEnabled && !im.IsDeleted && im.Module != null && !im.Module.IsDeleted)
+                .Select(im => im.Module!.ModuleCode)
                 .ToListAsync();
 
             return Ok(enabledModules);

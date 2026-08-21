@@ -111,15 +111,28 @@ namespace CoachOS.Infrastructure.Services
                 ActiveBatches = activeBatches,
                 PendingFees = pendingFees,
                 TodayAttendancePercent = todayAttendancePercent,
-                RecentEnquiries = recentEnquiries,
+                RecentEnquiries = recentEnquiries.Select(x => new {
+                    Name = (string)x.Name,
+                    CourseName = (string)x.CourseName,
+                    Date = (DateTime)x.Date,
+                    Status = (string)x.Status
+                }),
                 UpcomingClasses = upcomingClasses.Select(x => new {
                     Time = x.Time != null ? ((TimeSpan)x.Time).ToString(@"hh\:mm") : "10:00",
                     SubjectName = x.SubjectName ?? "Subject",
                     Room = x.Room ?? "N/A",
                     TeacherName = x.TeacherName ?? "Teacher"
                 }),
-                MonthlyRegistrations = monthlyRegistrations,
-                MonthlyCollections = monthlyCollections
+                MonthlyRegistrations = monthlyRegistrations.Select(x => new {
+                    Month = (string)x.Month,
+                    Count = Convert.ToInt32(x.Count),
+                    SortDate = (DateTime)x.SortDate
+                }),
+                MonthlyCollections = monthlyCollections.Select(x => new {
+                    Month = (string)x.Month,
+                    Amount = Convert.ToDecimal(x.Amount),
+                    SortDate = (DateTime)x.SortDate
+                })
             };
         }
 
@@ -172,9 +185,24 @@ namespace CoachOS.Infrastructure.Services
                 TotalStudents = totalStudents,
                 TotalTeachers = totalTeachers,
                 TotalRevenue = revenue,
-                PlanDistribution = planDistribution,
-                RecentInstitutes = recentInstitutes,
-                MonthlyGrowth = monthlyGrowth
+                PlanDistribution = planDistribution.Select(x => new {
+                    PlanName = (string)x.PlanName,
+                    Count = Convert.ToInt32(x.Count)
+                }),
+                RecentInstitutes = recentInstitutes.Select(x => new {
+                    Id = (Guid)x.Id,
+                    InstituteName = (string)x.InstituteName,
+                    InstituteCode = (string)x.InstituteCode,
+                    EstablishedYear = x.EstablishedYear != null ? (int?)Convert.ToInt32(x.EstablishedYear) : null,
+                    PlanName = (string)x.PlanName,
+                    IsActive = (bool)x.IsActive,
+                    CreatedAt = (DateTime)x.CreatedAt
+                }),
+                MonthlyGrowth = monthlyGrowth.Select(x => new {
+                    Month = (string)x.Month,
+                    Count = Convert.ToInt32(x.Count),
+                    SortDate = (DateTime)x.SortDate
+                })
             };
         }
     }

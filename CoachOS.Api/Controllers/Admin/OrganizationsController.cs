@@ -140,7 +140,7 @@ namespace CoachOS.Api.Controllers.Admin
             }
 
             await _context.SaveChangesAsync();
-            return Ok(ApiResponse<object>.Ok(null, "Organization modules updated successfully."));
+            return Ok(ApiResponse<bool>.Ok(true, "Organization modules updated successfully."));
         }
     }
 

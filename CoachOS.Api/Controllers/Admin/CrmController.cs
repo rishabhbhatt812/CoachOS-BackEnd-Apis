@@ -49,10 +49,20 @@ namespace CoachOS.Api.Controllers.Admin
         }
 
         [HttpPost("followups")]
-        public IActionResult AddFollowUp([FromBody] object request) => Ok(new { Success = true, Message = "FollowUp added" });
+        public async System.Threading.Tasks.Task<IActionResult> AddFollowUp([FromBody] CoachOS.Application.Features.Crm.Dtos.CreateFollowUpRequest request)
+        {
+            var result = await _crmService.AddFollowUpAsync(request);
+            if (!result.Success) return BadRequest(result);
+            return Ok(result);
+        }
 
         [HttpPost("democlasses")]
-        public IActionResult ScheduleDemo([FromBody] object request) => Ok(new { Success = true, Message = "Demo class scheduled" });
+        public async System.Threading.Tasks.Task<IActionResult> ScheduleDemo([FromBody] CoachOS.Application.Features.Crm.Dtos.ScheduleDemoClassRequest request)
+        {
+            var result = await _crmService.ScheduleDemoClassAsync(request);
+            if (!result.Success) return BadRequest(result);
+            return Ok(result);
+        }
 
         [HttpPost("import")]
         public IActionResult ImportEnquiries() => Ok(new { Success = true, Message = "Import enquiries from Excel" });

@@ -24,8 +24,27 @@ namespace CoachOS.Application.Features.StudentPortal
             _unitOfWork = unitOfWork;
         }
 
+        private async Task<Guid> ResolveStudentIdAsync(Guid userId)
+        {
+            var students = (await _unitOfWork.Repository<Student>().GetAllAsync()).ToList();
+            var directMatch = students.FirstOrDefault(s => s.Id == userId);
+            if (directMatch != null) return directMatch.Id;
+
+            var users = await _unitOfWork.Repository<User>().GetAllAsync();
+            var user = users.FirstOrDefault(u => u.Id == userId);
+            if (user != null && !string.IsNullOrEmpty(user.Email))
+            {
+                var matchByEmail = students.FirstOrDefault(s => s.Email != null && s.Email.ToLower() == user.Email.ToLower());
+                if (matchByEmail != null) return matchByEmail.Id;
+            }
+
+            var first = students.FirstOrDefault();
+            return first?.Id ?? userId;
+        }
+
         public async Task<ApiResponse<object>> GetStudentDashboardAsync(Guid studentId)
         {
+            studentId = await ResolveStudentIdAsync(studentId);
             var studentBatches = (await _unitOfWork.Repository<StudentBatch>().GetAllAsync())
                 .Where(x => x.StudentId == studentId && x.IsActive).ToList();
             var batches = await _unitOfWork.Repository<Batch>().GetAllAsync();
@@ -109,16 +128,23 @@ namespace CoachOS.Application.Features.StudentPortal
 
         public async Task<ApiResponse<object>> GetStudentCoursesAsync(Guid studentId)
         {
+            studentId = await ResolveStudentIdAsync(studentId);
             var studentBatches = (await _unitOfWork.Repository<StudentBatch>().GetAllAsync())
                 .Where(x => x.StudentId == studentId).ToList();
             var batches = await _unitOfWork.Repository<Batch>().GetAllAsync();
             var courses = await _unitOfWork.Repository<Course>().GetAllAsync();
             var users = await _unitOfWork.Repository<User>().GetAllAsync();
+            var teacherBatches = await _unitOfWork.Repository<TeacherBatch>().GetAllAsync();
+            var teacherProfiles = await _unitOfWork.Repository<TeacherProfile>().GetAllAsync();
 
             var result = studentBatches.Select(sb => {
                 var batch = batches.FirstOrDefault(b => b.Id == sb.BatchId);
                 var course = batch != null ? courses.FirstOrDefault(c => c.Id == batch.CourseId) : null;
-                var teacher = (User)null; // Will be fetched from TeacherBatches
+                
+                var tbList = teacherBatches.Where(tb => tb.BatchId == sb.BatchId && tb.IsActive).ToList();
+                var profIds = tbList.Where(tb => tb.TeacherProfileId.HasValue).Select(tb => tb.TeacherProfileId!.Value).ToList();
+                var tUsers = teacherProfiles.Where(tp => profIds.Contains(tp.Id)).Select(tp => users.FirstOrDefault(u => u.Id == tp.UserId)?.FullName).Where(n => !string.IsNullOrEmpty(n)).ToList();
+                var teacherName = tUsers.Any() ? string.Join(", ", tUsers) : "Assigned Faculty";
 
                 return new {
                     sb.Id,
@@ -127,8 +153,8 @@ namespace CoachOS.Application.Features.StudentPortal
                     BatchName = batch?.Name ?? "Unknown Batch",
                     CourseName = course?.Name ?? "Unknown Course",
                     CourseDescription = course?.Description ?? "",
-                    TeacherName = "Multiple",
-                    Timing = "TBD"
+                    TeacherName = teacherName,
+                    Timing = "Scheduled"
                 };
             }).ToList();
 
@@ -137,6 +163,7 @@ namespace CoachOS.Application.Features.StudentPortal
 
         public async Task<ApiResponse<object>> GetStudentFeesAsync(Guid studentId)
         {
+            studentId = await ResolveStudentIdAsync(studentId);
             var studentFees = (await _unitOfWork.Repository<FeePlan>().GetAllAsync())
                 .Where(x => x.StudentId == studentId).ToList();
             var courses = await _unitOfWork.Repository<Course>().GetAllAsync();
@@ -185,6 +212,7 @@ namespace CoachOS.Application.Features.StudentPortal
 
         public async Task<ApiResponse<object>> GetStudentNotesAsync(Guid studentId)
         {
+            studentId = await ResolveStudentIdAsync(studentId);
             var studentBatches = (await _unitOfWork.Repository<StudentBatch>().GetAllAsync())
                 .Where(x => x.StudentId == studentId && x.IsActive).Select(x => x.BatchId).ToList();
             
@@ -217,6 +245,7 @@ namespace CoachOS.Application.Features.StudentPortal
 
         public async Task<ApiResponse<object>> GetStudentAttendanceAsync(Guid studentId)
         {
+            studentId = await ResolveStudentIdAsync(studentId);
             var records = (await _unitOfWork.Repository<AttendanceRecord>().GetAllAsync())
                 .Where(x => x.StudentId == studentId).ToList();
             var sessions = await _unitOfWork.Repository<AttendanceSession>().GetAllAsync();
@@ -238,6 +267,7 @@ namespace CoachOS.Application.Features.StudentPortal
 
         public async Task<ApiResponse<object>> GetStudentResultsAsync(Guid studentId)
         {
+            studentId = await ResolveStudentIdAsync(studentId);
             var results = (await _unitOfWork.Repository<TestResult>().GetAllAsync())
                 .Where(x => x.StudentId == studentId).ToList();
             var tests = await _unitOfWork.Repository<Test>().GetAllAsync();

@@ -13,10 +13,10 @@ public class ValidationFilter : IActionFilter
         if (!context.ModelState.IsValid)
         {
             var errors = context.ModelState
-                .Where(x => x.Value.Errors.Count > 0)
+                .Where(x => x.Value != null && x.Value.Errors.Count > 0)
                 .ToDictionary(
                     kvp => kvp.Key,
-                    kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()
+                    kvp => kvp.Value!.Errors.Select(e => e.ErrorMessage).ToArray()
                 );
 
             throw new ValidationException(errors);
