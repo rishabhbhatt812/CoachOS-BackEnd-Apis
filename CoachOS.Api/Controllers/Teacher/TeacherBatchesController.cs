@@ -126,6 +126,7 @@ namespace CoachOS.Api.Controllers.Teacher
                     name = s.FullName,
                     email = s.Email,
                     mobile = s.Mobile,
+                    profileImagePath = s.ProfileImagePath,
                     attendancePercentage = attendancePercent,
                     status = s.Status ?? "Active",
                     isPresent = true,

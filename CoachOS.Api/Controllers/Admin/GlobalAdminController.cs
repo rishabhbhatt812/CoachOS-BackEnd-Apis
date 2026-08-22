@@ -12,7 +12,7 @@ namespace CoachOS.Api.Controllers.Admin
 {
     [ApiController]
     [Route("api/admin/[controller]")]
-    [Authorize(Roles = "GLOBAL_ADMIN,SUPER_ADMIN")]
+    [Authorize(Roles = "GLOBAL_ADMIN,SUPER_ADMIN,INSTITUTE_ADMIN,ADMIN")]
     public class GlobalAdminController : ControllerBase
     {
         private readonly AppDbContext _context;

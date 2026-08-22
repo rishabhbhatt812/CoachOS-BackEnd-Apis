@@ -69,6 +69,7 @@ builder.Services.AddScoped<IModuleAccessService, ModuleAccessService>();
 builder.Services.AddScoped<IFileStorageService, FileStorageService>();
 builder.Services.AddScoped<IExcelService, ExcelService>();
 builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<CoachOS.Application.Interfaces.Services.IJwtTokenService, CoachOS.Infrastructure.Services.JwtTokenService>();
 builder.Services.AddScoped(typeof(CoachOS.Application.Interfaces.Repositories.IRepository<>), typeof(CoachOS.Infrastructure.Repositories.Repository<>));
 builder.Services.AddScoped<CoachOS.Application.Interfaces.Repositories.IUnitOfWork, CoachOS.Infrastructure.Repositories.UnitOfWork>();

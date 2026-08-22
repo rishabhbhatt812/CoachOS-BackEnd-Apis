@@ -68,27 +68,48 @@ namespace CoachOS.Application.Features.Students
 
         public async Task<ApiResponse<string>> GetNextStudentCodeAsync(string prefix)
         {
-            var nextNumber = 1;
-            var students = await _unitOfWork.Repository<Student>().GetAllAsync();
-            var prefixWithHyphen = prefix.EndsWith("-") ? prefix : prefix + "-";
-
-            var matchingCodes = students
-                .Select(s => s.StudentCode)
-                .Where(code => !string.IsNullOrEmpty(code) && code.StartsWith(prefixWithHyphen, StringComparison.OrdinalIgnoreCase))
-                .ToList();
-
-            if (matchingCodes.Any())
+            var currentYear = DateTime.UtcNow.Year;
+            var rawPrefix = string.IsNullOrWhiteSpace(prefix) ? "STU" : prefix.Trim();
+            
+            // Normalize prefix
+            string normalizedPrefix;
+            if (rawPrefix.Equals("DEMO", StringComparison.OrdinalIgnoreCase))
             {
-                var maxNumber = matchingCodes
-                    .Select(code => {
-                        var numericPart = code.Substring(prefixWithHyphen.Length);
-                        return int.TryParse(numericPart, out var num) ? num : 0;
-                    })
-                    .Max();
-                nextNumber = maxNumber + 1;
+                normalizedPrefix = "DEMO";
+            }
+            else if (rawPrefix.Equals("PERMANENT", StringComparison.OrdinalIgnoreCase) || rawPrefix.Equals("STU", StringComparison.OrdinalIgnoreCase))
+            {
+                normalizedPrefix = "STU";
+            }
+            else
+            {
+                normalizedPrefix = rawPrefix.TrimEnd('-');
             }
 
-            var nextCode = prefixWithHyphen + nextNumber.ToString("D3");
+            var students = await _unitOfWork.Repository<Student>().GetAllAsync();
+            
+            // Find all student codes matching the prefix pattern
+            var prefixPattern = normalizedPrefix.ToLower();
+            var existingCodes = students
+                .Select(s => s.StudentCode)
+                .Where(c => !string.IsNullOrWhiteSpace(c) && c.ToLower().Contains(prefixPattern))
+                .ToList();
+
+            var maxSeq = 0;
+            foreach (var code in existingCodes)
+            {
+                var match = System.Text.RegularExpressions.Regex.Match(code.Trim(), @"(\d+)$");
+                if (match.Success && int.TryParse(match.Value, out var num))
+                {
+                    if (num > maxSeq)
+                    {
+                        maxSeq = num;
+                    }
+                }
+            }
+
+            var nextNumber = maxSeq + 1;
+            var nextCode = $"{normalizedPrefix}-{currentYear}-{nextNumber:D3}";
             return ApiResponse<string>.Ok(nextCode);
         }
 

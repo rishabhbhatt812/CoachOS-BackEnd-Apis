@@ -15,5 +15,12 @@ namespace CoachOS.Application.Features.Auth.Dtos
         public string AccessToken { get; set; } = string.Empty;
         public int ExpiresInMinutes { get; set; }
         public bool IsPasswordChanged { get; set; }
+
+        public string? InstituteName { get; set; }
+        public string? InstituteCode { get; set; }
+        public string? InstituteLogo { get; set; }
+        public string? InstituteContact { get; set; }
+        public string? InstituteEmail { get; set; }
+        public string? InstituteAddress { get; set; }
     }
 }

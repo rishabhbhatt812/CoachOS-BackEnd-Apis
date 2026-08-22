@@ -16,16 +16,19 @@ public class AuthService : IAuthService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IJwtTokenService _jwtTokenService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IEmailService _emailService;
     private readonly PasswordHasher<User> _passwordHasher = new();
 
     public AuthService(
         IUnitOfWork unitOfWork,
         IJwtTokenService jwtTokenService,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        IEmailService emailService)
     {
         _unitOfWork = unitOfWork;
         _jwtTokenService = jwtTokenService;
         _currentUserService = currentUserService;
+        _emailService = emailService;
     }
 
     public async Task<ApiResponse<RegisterInstituteResponse>> RegisterInstituteAsync(RegisterInstituteRequest request)
@@ -179,6 +182,17 @@ public class AuthService : IAuthService
             AdminEmail = user.Email
         };
 
+        // Dispatch Welcome Credentials Email
+        _ = Task.Run(async () =>
+        {
+            await _emailService.SendOrganizationWelcomeEmailAsync(
+                request.Email,
+                institute.Name,
+                request.OwnerName,
+                request.Password,
+                "http://localhost:4200/auth/login");
+        });
+
         return ApiResponse<RegisterInstituteResponse>.Ok(response, "Institute registered successfully.");
     }
 
@@ -220,6 +234,16 @@ public class AuthService : IAuthService
 
         var token = _jwtTokenService.GenerateToken(user, role.Code);
 
+        Institute? institute = null;
+        if (user.InstituteId != Guid.Empty)
+        {
+            institute = await _unitOfWork.Repository<Institute>()
+                .FirstOrDefaultAsync(i => i.Id == user.InstituteId, ignoreQueryFilters: true);
+        }
+
+        var fullAddress = string.Join(", ", new[] { institute?.AddressLine1, institute?.AddressLine2, institute?.City, institute?.State, institute?.Pincode }
+            .Where(s => !string.IsNullOrWhiteSpace(s)));
+
         var response = new LoginResponse
         {
             UserId = user.Id,
@@ -229,7 +253,13 @@ public class AuthService : IAuthService
             RoleCode = role.Code,
             AccessToken = token,
             ExpiresInMinutes = 60,
-            IsPasswordChanged = user.IsPasswordChanged
+            IsPasswordChanged = user.IsPasswordChanged,
+            InstituteName = institute?.Name ?? "EduNex Academy",
+            InstituteCode = institute?.InstituteCode ?? "EDUNEX",
+            InstituteLogo = institute?.LogoPath ?? "/logo.png",
+            InstituteContact = institute?.MobileNumber ?? "+91 98765 43210",
+            InstituteEmail = institute?.EmailAddress ?? "admissions@edunex.in",
+            InstituteAddress = !string.IsNullOrWhiteSpace(fullAddress) ? fullAddress : "Main Campus, Education Hub"
         };
 
         return ApiResponse<LoginResponse>.Ok(response, "Login successful.");

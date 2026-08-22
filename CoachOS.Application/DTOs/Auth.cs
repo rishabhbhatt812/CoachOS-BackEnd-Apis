@@ -21,5 +21,12 @@ namespace CoachOS.Application.DTOs
         public string FullName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string RoleCode { get; set; } = string.Empty;
+
+        public string? InstituteName { get; set; }
+        public string? InstituteCode { get; set; }
+        public string? InstituteLogo { get; set; }
+        public string? InstituteContact { get; set; }
+        public string? InstituteEmail { get; set; }
+        public string? InstituteAddress { get; set; }
     }
 }

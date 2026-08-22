@@ -14,11 +14,13 @@ namespace CoachOS.Infrastructure.Services
     {
         private readonly AppDbContext _db;
         private readonly IAuditLogService _auditLog;
+        private readonly IEmailService _emailService;
 
-        public AdmissionsService(AppDbContext db, IAuditLogService auditLog)
+        public AdmissionsService(AppDbContext db, IAuditLogService auditLog, IEmailService emailService)
         {
             _db = db;
             _auditLog = auditLog;
+            _emailService = emailService;
         }
 
         public async Task<Guid> QuickAdmissionAsync(QuickAdmissionRequest request)
@@ -73,6 +75,22 @@ namespace CoachOS.Infrastructure.Services
             await _db.SaveChangesAsync();
 
             await _auditLog.LogAsync("Student", student.Id.ToString(), "QuickAdmission", null, $"Student {student.FullName} admitted to batch {request.BatchId}");
+
+            if (!string.IsNullOrWhiteSpace(student.Email))
+            {
+                _ = Task.Run(async () =>
+                {
+                    var batch = await _db.Batches.Include(b => b.Course).FirstOrDefaultAsync(b => b.Id == request.BatchId);
+                    await _emailService.SendStudentWelcomeEmailAsync(
+                        student.Email,
+                        student.FullName,
+                        student.StudentCode,
+                        "Password123",
+                        batch?.Course?.Name ?? "Academic Course",
+                        batch?.Name ?? "General Batch",
+                        "http://localhost:4200/auth/login");
+                });
+            }
 
             return student.Id;
         }
@@ -222,6 +240,22 @@ namespace CoachOS.Infrastructure.Services
 
                 await _auditLog.LogAsync("Student", student.Id.ToString(), "FullAdmission", null, $"Student {student.FullName} admitted via full wizard.");
                 await transaction.CommitAsync();
+
+                if (!string.IsNullOrWhiteSpace(student.Email))
+                {
+                    _ = Task.Run(async () =>
+                    {
+                        var batch = await _db.Batches.Include(b => b.Course).FirstOrDefaultAsync(b => b.Id == request.BatchId);
+                        await _emailService.SendStudentWelcomeEmailAsync(
+                            student.Email,
+                            student.FullName,
+                            student.StudentCode,
+                            "Password123",
+                            batch?.Course?.Name ?? "Academic Course",
+                            batch?.Name ?? "General Batch",
+                            "http://localhost:4200/auth/login");
+                    });
+                }
 
                 return student.Id;
             }

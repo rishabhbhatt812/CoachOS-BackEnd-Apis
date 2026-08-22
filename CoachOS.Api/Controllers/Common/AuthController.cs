@@ -86,4 +86,53 @@ public class AuthController : ControllerBase
 
         return Ok(ApiResponse<object>.Ok(enabledModules));
     }
+
+    [Authorize]
+    [HttpGet("my-institute")]
+    public async Task<IActionResult> GetMyInstitute(
+        [FromServices] ICurrentUserService currentUserService,
+        [FromServices] AppDbContext context)
+    {
+        var instituteId = currentUserService.InstituteId;
+        if (instituteId == null || instituteId == Guid.Empty)
+        {
+            return Ok(ApiResponse<object>.Ok(new
+            {
+                Name = "EduNex Global Platform",
+                InstituteCode = "EDUNEX",
+                Logo = "/logo.png",
+                MobileNumber = "+91 98765 43210",
+                EmailAddress = "admissions@edunex.in",
+                Address = "Global Education Center"
+            }));
+        }
+
+        var inst = await context.Institutes
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(i => i.Id == instituteId.Value && !i.IsDeleted);
+
+        if (inst == null)
+            return NotFound(ApiResponse<object>.Fail("Institute not found."));
+
+        var fullAddress = string.Join(", ", new[] { inst.AddressLine1, inst.AddressLine2, inst.City, inst.State, inst.Pincode }
+            .Where(s => !string.IsNullOrWhiteSpace(s)));
+
+        return Ok(ApiResponse<object>.Ok(new
+        {
+            inst.Id,
+            inst.InstituteCode,
+            inst.Name,
+            inst.ShortName,
+            Logo = inst.LogoPath ?? "/logo.png",
+            inst.ContactPersonName,
+            inst.MobileNumber,
+            inst.EmailAddress,
+            inst.WebsiteUrl,
+            Address = !string.IsNullOrWhiteSpace(fullAddress) ? fullAddress : "Main Campus",
+            inst.City,
+            inst.State,
+            inst.Pincode,
+            inst.PlanName
+        }));
+    }
 }
