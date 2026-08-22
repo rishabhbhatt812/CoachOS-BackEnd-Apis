@@ -6,7 +6,7 @@ namespace CoachOS.Api.Controllers.Admin
 {
     [ApiController]
     [Route("api/admin/[controller]")]
-    [Authorize(Roles = "INSTITUTE_ADMIN,GLOBAL_ADMIN,SUPER_ADMIN")]
+    [Authorize]
     public class CoursesController : ControllerBase
     {
         private readonly CoachOS.Application.Interfaces.Services.IAcademicsService _academicsService;
@@ -17,9 +17,10 @@ namespace CoachOS.Api.Controllers.Admin
         }
 
         [HttpGet]
-        public async System.Threading.Tasks.Task<IActionResult> GetAll([FromQuery] CoachOS.Shared.Requests.PaginationParams paginationParams)
+        public async System.Threading.Tasks.Task<IActionResult> GetAll([FromQuery] CoachOS.Shared.Requests.PaginationParams? paginationParams)
         {
-            return Ok(await _academicsService.GetCoursesAsync(paginationParams));
+            var res = await _academicsService.GetCoursesAsync(paginationParams ?? new CoachOS.Shared.Requests.PaginationParams { PageNumber = 1, PageSize = 100 });
+            return Ok(res);
         }
 
         [HttpGet("{id}")]

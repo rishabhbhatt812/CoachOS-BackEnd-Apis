@@ -63,18 +63,34 @@ namespace CoachOS.Application.Features.Academics
 
         public async Task<ApiResponse<CoachOS.Shared.Responses.PagedResult<CourseDto>>> GetCoursesAsync(CoachOS.Shared.Requests.PaginationParams paginationParams)
         {
-            var coursesPaged = await _unitOfWork.Repository<Course>().GetPagedAsync(paginationParams);
-            var subjects = await _unitOfWork.Repository<Subject>().GetAllAsync();
-
-            var coursesDto = coursesPaged.Data.Select(c =>
+            try
             {
-                var dto = c.Adapt<CourseDto>();
-                dto.Subjects = subjects.Where(s => s.CourseId == c.Id).Adapt<List<SubjectDto>>();
-                return dto;
-            }).ToList();
+                paginationParams ??= new CoachOS.Shared.Requests.PaginationParams { PageNumber = 1, PageSize = 100 };
+                if (paginationParams.PageNumber < 1) paginationParams.PageNumber = 1;
+                if (paginationParams.PageSize < 1) paginationParams.PageSize = 100;
 
-            var result = new CoachOS.Shared.Responses.PagedResult<CourseDto>(coursesDto, coursesPaged.TotalCount, coursesPaged.CurrentPage, coursesPaged.PageSize);
-            return ApiResponse<CoachOS.Shared.Responses.PagedResult<CourseDto>>.Ok(result);
+                var coursesPaged = await _unitOfWork.Repository<Course>().GetPagedAsync(paginationParams);
+                var subjects = await _unitOfWork.Repository<Subject>().GetAllAsync();
+
+                var coursesDto = (coursesPaged?.Data ?? new List<Course>()).Select(c =>
+                {
+                    var dto = c.Adapt<CourseDto>();
+                    dto.Subjects = (subjects ?? new List<Subject>()).Where(s => s.CourseId == c.Id).Adapt<List<SubjectDto>>();
+                    return dto;
+                }).ToList();
+
+                var result = new CoachOS.Shared.Responses.PagedResult<CourseDto>(
+                    coursesDto, 
+                    coursesPaged?.TotalCount ?? coursesDto.Count, 
+                    paginationParams.PageNumber, 
+                    paginationParams.PageSize
+                );
+                return ApiResponse<CoachOS.Shared.Responses.PagedResult<CourseDto>>.Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<CoachOS.Shared.Responses.PagedResult<CourseDto>>.Fail(ex.Message);
+            }
         }
 
         public async Task<ApiResponse<CourseDto>> GetCourseByIdAsync(Guid id)
