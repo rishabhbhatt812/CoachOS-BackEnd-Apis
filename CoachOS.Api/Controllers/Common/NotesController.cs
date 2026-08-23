@@ -32,12 +32,6 @@ namespace CoachOS.Api.Controllers.Common
                 return NotFound("Study material not found.");
             }
 
-            var age = DateTime.UtcNow - note.CreatedAt;
-            if (age.TotalHours > 48)
-            {
-                return BadRequest("This study material download has expired (48 hours limit).");
-            }
-
             try
             {
                 var fileBytes = await _fileStorageService.GetFileAsync(note.FilePath);

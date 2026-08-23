@@ -1,7 +1,17 @@
 using CoachOS.Api.Middlewares;
+using CoachOS.Application.Interfaces.Repositories;
+using CoachOS.Application.Interfaces.Services;
+using CoachOS.Domain.Academic;
+using CoachOS.Domain.Identity;
+using CoachOS.Domain.Learning;
+using CoachOS.Shared.Requests;
+using CoachOS.Shared.Responses;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
+using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace CoachOS.Api.Controllers.Teacher
@@ -18,25 +28,25 @@ namespace CoachOS.Api.Controllers.Teacher
         public Guid BatchId { get; set; }
 
         [FromForm(Name = "file")]
-        public Microsoft.AspNetCore.Http.IFormFile File { get; set; } = null!;
+        public IFormFile File { get; set; } = null!;
     }
 
     [ApiController]
     [Route("api/teacher/notes")]
-    [Authorize(Roles = "TEACHER,INSTITUTE_ADMIN,BRANCH_ADMIN,SUPER_ADMIN,GLOBAL_ADMIN")]
+    [Authorize(Roles = "TEACHER,ADMIN,INSTITUTE_ADMIN,BRANCH_ADMIN,SUPER_ADMIN,GLOBAL_ADMIN")]
     [ModuleAccess("LEARNING")]
     public class TeacherNotesController : ControllerBase
     {
-        private readonly CoachOS.Application.Interfaces.Services.ILearningService _learningService;
-        private readonly CoachOS.Application.Interfaces.Services.IFileStorageService _fileStorageService;
-        private readonly CoachOS.Application.Interfaces.Services.ICurrentUserService _currentUserService;
-        private readonly CoachOS.Application.Interfaces.Repositories.IUnitOfWork _unitOfWork;
+        private readonly ILearningService _learningService;
+        private readonly IFileStorageService _fileStorageService;
+        private readonly ICurrentUserService _currentUserService;
+        private readonly IUnitOfWork _unitOfWork;
 
         public TeacherNotesController(
-            CoachOS.Application.Interfaces.Services.ILearningService learningService,
-            CoachOS.Application.Interfaces.Services.IFileStorageService fileStorageService,
-            CoachOS.Application.Interfaces.Services.ICurrentUserService currentUserService,
-            CoachOS.Application.Interfaces.Repositories.IUnitOfWork unitOfWork)
+            ILearningService learningService,
+            IFileStorageService fileStorageService,
+            ICurrentUserService currentUserService,
+            IUnitOfWork unitOfWork)
         {
             _learningService = learningService;
             _fileStorageService = fileStorageService;
@@ -45,32 +55,83 @@ namespace CoachOS.Api.Controllers.Teacher
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll([FromQuery] CoachOS.Shared.Requests.PaginationParams paginationParams)
+        public async Task<IActionResult> GetAll([FromQuery] PaginationParams? paginationParams)
         {
-            return Ok(await _learningService.GetNotesAsync(paginationParams));
+            var notes = await _unitOfWork.Repository<Note>().GetAllAsync();
+            var courses = await _unitOfWork.Repository<Course>().GetAllAsync();
+            var batches = await _unitOfWork.Repository<Batch>().GetAllAsync();
+            var subjects = await _unitOfWork.Repository<Subject>().GetAllAsync();
+
+            var currentUserId = _currentUserService.UserId;
+            var isTeacher = _currentUserService.RoleCode == "TEACHER";
+
+            var filteredNotes = notes.Where(n => n.IsActive);
+            if (isTeacher && currentUserId.HasValue)
+            {
+                filteredNotes = filteredNotes.Where(n => n.UploadedByUserId == currentUserId.Value || n.UploadedByUserId == Guid.Empty);
+            }
+
+            var dtos = filteredNotes.OrderByDescending(n => n.CreatedAt).Select(n =>
+            {
+                var batch = batches.FirstOrDefault(b => b.Id == n.BatchId);
+                var course = courses.FirstOrDefault(c => c.Id == (n.CourseId ?? batch?.CourseId));
+                var subject = subjects.FirstOrDefault(s => s.Id == n.SubjectId);
+
+                return new
+                {
+                    n.Id,
+                    n.Title,
+                    n.Description,
+                    n.OriginalFileName,
+                    n.StoredFileName,
+                    FilePath = $"/api/notes/download/{n.Id}",
+                    n.FileType,
+                    n.FileSizeInBytes,
+                    CourseId = course?.Id ?? n.CourseId,
+                    CourseName = course?.Name ?? "General Course",
+                    BatchId = n.BatchId,
+                    BatchName = batch?.Name ?? "All Batches",
+                    SubjectId = n.SubjectId,
+                    SubjectName = subject?.Name ?? "General Subject",
+                    CreatedAt = n.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss"),
+                    UploadedByUserId = n.UploadedByUserId
+                };
+            }).ToList();
+
+            return Ok(ApiResponse<object>.Ok(dtos));
         }
 
         [HttpPost]
         [Consumes("multipart/form-data")]
         public async Task<IActionResult> Create([FromForm] CreateNoteUploadModel model)
         {
+            if (string.IsNullOrWhiteSpace(model.Title))
+            {
+                return BadRequest(ApiResponse<object>.Fail("Resource title is required."));
+            }
+
+            if (model.BatchId == Guid.Empty)
+            {
+                return BadRequest(ApiResponse<object>.Fail("Target batch is required."));
+            }
+
             if (model.File == null || model.File.Length == 0)
             {
-                return BadRequest("No file was uploaded.");
+                return BadRequest(ApiResponse<object>.Fail("Please select a document file to upload."));
             }
 
             var userId = _currentUserService.UserId ?? Guid.Empty;
 
-            var batch = await _unitOfWork.Repository<CoachOS.Domain.Academic.Batch>().GetByIdAsync(model.BatchId);
+            var batch = await _unitOfWork.Repository<Batch>().GetByIdAsync(model.BatchId);
             if (batch == null)
             {
-                return BadRequest("Invalid Batch ID.");
+                return BadRequest(ApiResponse<object>.Fail("Selected batch does not exist."));
             }
 
             var courseId = batch.CourseId;
 
             Guid? subjectId = null;
-            var teacherBatches = await _unitOfWork.Repository<CoachOS.Domain.Identity.TeacherBatch>().GetAllAsync();
+            var teacherBatches = await _unitOfWork.Repository<TeacherBatch>().GetAllAsync();
             var matchingTB = teacherBatches.FirstOrDefault(tb => tb.BatchId == model.BatchId && tb.IsActive);
             if (matchingTB != null)
             {
@@ -78,17 +139,12 @@ namespace CoachOS.Api.Controllers.Teacher
             }
             else
             {
-                var subjects = await _unitOfWork.Repository<CoachOS.Domain.Academic.Subject>().GetAllAsync();
+                var subjects = await _unitOfWork.Repository<Subject>().GetAllAsync();
                 var courseSubject = subjects.FirstOrDefault(s => s.CourseId == courseId && s.IsActive);
                 if (courseSubject != null)
                 {
                     subjectId = courseSubject.Id;
                 }
-            }
-
-            if (!subjectId.HasValue || subjectId == Guid.Empty)
-            {
-                return BadRequest("No subject is associated with this batch. Please contact the administrator.");
             }
 
             string relativePath;
@@ -97,46 +153,87 @@ namespace CoachOS.Api.Controllers.Teacher
                 relativePath = await _fileStorageService.SaveFileAsync(stream, model.File.FileName, "notes");
             }
 
-            var req = new CoachOS.Application.Features.Learning.Dtos.CreateNoteRequest
+            var note = new Note
             {
-                Title = model.Title,
-                Description = model.Description,
+                Title = model.Title.Trim(),
+                Description = model.Description?.Trim(),
+                BatchId = model.BatchId,
+                CourseId = courseId,
+                SubjectId = subjectId,
                 FilePath = relativePath,
                 OriginalFileName = model.File.FileName,
-                StoredFileName = System.IO.Path.GetFileName(relativePath),
-                FileType = model.File.ContentType,
+                StoredFileName = Path.GetFileName(relativePath),
+                FileType = model.File.ContentType ?? "application/octet-stream",
                 FileSizeInBytes = model.File.Length,
-                CourseId = courseId,
-                BatchId = model.BatchId,
-                SubjectId = subjectId.Value,
-                UploadedByUserId = userId
+                UploadedByUserId = userId,
+                IsActive = true
             };
 
-            return Ok(await _learningService.CreateNoteAsync(req));
+            await _unitOfWork.Repository<Note>().AddAsync(note);
+            await _unitOfWork.SaveChangesAsync();
+
+            var course = await _unitOfWork.Repository<Course>().GetByIdAsync(courseId);
+
+            var responseData = new
+            {
+                note.Id,
+                note.Title,
+                note.Description,
+                note.OriginalFileName,
+                FilePath = $"/api/notes/download/{note.Id}",
+                note.FileType,
+                note.FileSizeInBytes,
+                CourseName = course?.Name ?? "General Course",
+                BatchName = batch.Name,
+                CreatedAt = note.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")
+            };
+
+            return Ok(ApiResponse<object>.Ok(responseData, "Study material uploaded and distributed successfully."));
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(Guid id)
         {
-            return Ok(await _learningService.DeleteNoteAsync(id));
+            var note = await _unitOfWork.Repository<Note>().GetByIdAsync(id);
+            if (note == null)
+            {
+                return NotFound(ApiResponse<bool>.Fail("Study material not found."));
+            }
+
+            try
+            {
+                if (!string.IsNullOrEmpty(note.FilePath))
+                {
+                    _fileStorageService.DeleteFile(note.FilePath);
+                }
+            }
+            catch
+            {
+                // Ignore file system deletion error if file does not exist
+            }
+
+            _unitOfWork.Repository<Note>().Remove(note);
+            await _unitOfWork.SaveChangesAsync();
+
+            return Ok(ApiResponse<bool>.Ok(true, "Study material deleted successfully."));
         }
     }
 
     [ApiController]
     [Route("api/teacher/tests")]
-    [Authorize(Roles = "TEACHER,INSTITUTE_ADMIN,BRANCH_ADMIN,SUPER_ADMIN,GLOBAL_ADMIN")]
+    [Authorize(Roles = "TEACHER,ADMIN,INSTITUTE_ADMIN,BRANCH_ADMIN,SUPER_ADMIN,GLOBAL_ADMIN")]
     [ModuleAccess("LEARNING")]
     public class TeacherTestsController : ControllerBase
     {
-        private readonly CoachOS.Application.Interfaces.Services.ILearningService _learningService;
+        private readonly ILearningService _learningService;
 
-        public TeacherTestsController(CoachOS.Application.Interfaces.Services.ILearningService learningService)
+        public TeacherTestsController(ILearningService learningService)
         {
             _learningService = learningService;
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll([FromQuery] CoachOS.Shared.Requests.PaginationParams paginationParams)
+        public async Task<IActionResult> GetAll([FromQuery] PaginationParams paginationParams)
         {
             return Ok(await _learningService.GetTestsAsync(paginationParams));
         }

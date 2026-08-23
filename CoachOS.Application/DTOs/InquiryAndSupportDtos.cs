@@ -34,6 +34,11 @@ namespace CoachOS.Application.DTOs
         public string? NewStatus { get; set; } = "Resolved"; // "Open", "In Progress", "Resolved", "Closed"
     }
 
+    public class UpdateTicketStatusRequest
+    {
+        public string Status { get; set; } = "Closed";
+    }
+
     public class SupportTicketResponseDto
     {
         public string Id { get; set; } = string.Empty;
@@ -49,6 +54,10 @@ namespace CoachOS.Application.DTOs
         public string Priority { get; set; } = "Medium";
         public string Status { get; set; } = "Open";
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public bool HasUnreadReply { get; set; } = false;
+        public int UnreadRepliesCount { get; set; } = 0;
+        public DateTime? LastRepliedAt { get; set; }
+        public string? LastRepliedBy { get; set; }
         public List<SupportTicketReplyDto> Replies { get; set; } = new();
     }
 

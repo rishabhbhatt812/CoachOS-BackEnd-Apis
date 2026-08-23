@@ -289,6 +289,59 @@ namespace CoachOS.Infrastructure.Services
             return await SendEmailAsync(adminEmail, emailSubject, html, "Rishabh Bhatt (Support Desk)");
         }
 
+        public async Task<bool> SendSupportTicketConfirmationToUserAsync(
+            string toEmail,
+            string recipientName,
+            string ticketId,
+            string category,
+            string subject,
+            string message)
+        {
+            var emailSubject = $"🎫 [Ticket #{ticketId}] Confirmation: {subject}";
+            var html = $@"
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset='utf-8'/>
+  <style>
+    body {{ font-family: 'Segoe UI', Helvetica, Arial, sans-serif; background-color: #f8fafc; color: #0f172a; margin: 0; padding: 20px; }}
+    .email-container {{ max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 14px; border: 1px solid #e2e8f0; overflow: hidden; }}
+    .email-header {{ background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%); padding: 24px; color: #ffffff; text-align: center; }}
+    .email-body {{ padding: 24px; }}
+    .badge {{ display: inline-block; background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 12px; }}
+    .msg-box {{ background: #f8fafc; border-left: 4px solid #4f46e5; padding: 14px; border-radius: 6px; color: #334155; font-size: 13px; line-height: 1.6; margin: 16px 0; }}
+  </style>
+</head>
+<body>
+  <div class='email-container'>
+    <div class='email-header'>
+      <h2 style='margin:0;'>Support Request Received</h2>
+      <p style='margin:4px 0 0; font-size: 13px; opacity: 0.9;'>Ticket #{ticketId}</p>
+    </div>
+    <div class='email-body'>
+      <p>Hello {recipientName},</p>
+      <p style='color:#475569; font-size: 13px;'>
+        Thank you for contacting EduNex Support. We have logged your support inquiry and assigned it ticket reference <strong>#{ticketId}</strong>.
+      </p>
+
+      <span class='badge'>{category}</span>
+      <h3 style='margin: 12px 0 6px; color:#1e1b4b;'>{subject}</h3>
+
+      <div class='msg-box'>
+        {message}
+      </div>
+
+      <p style='font-size: 12px; color: #64748b;'>
+        Our technical engineering team will review and reply directly to your dashboard and registered email address.
+      </p>
+    </div>
+  </div>
+</body>
+</html>";
+
+            return await SendEmailAsync(toEmail, emailSubject, html, recipientName);
+        }
+
         public async Task<bool> SendSupportTicketReplyAsync(
             string toEmail,
             string recipientName,

@@ -79,18 +79,33 @@ namespace CoachOS.Api.Controllers.Common
 
             _tickets.Add(ticket);
 
-            // Send notification email to admin email
+            // Send notification email to admin email & confirmation to client
             _ = Task.Run(async () =>
             {
-                await _emailService.SendSupportTicketAlertAsync(
-                    ticket.TicketNumber,
-                    ticket.UserName,
-                    ticket.UserEmail,
-                    ticket.UserRole,
-                    ticket.InstituteName,
-                    ticket.Category,
-                    ticket.Subject,
-                    ticket.Message);
+                try
+                {
+                    await _emailService.SendSupportTicketAlertAsync(
+                        ticket.TicketNumber,
+                        ticket.UserName,
+                        ticket.UserEmail,
+                        ticket.UserRole,
+                        ticket.InstituteName,
+                        ticket.Category,
+                        ticket.Subject,
+                        ticket.Message);
+
+                    await _emailService.SendSupportTicketConfirmationToUserAsync(
+                        ticket.UserEmail,
+                        ticket.UserName,
+                        ticket.TicketNumber,
+                        ticket.Category,
+                        ticket.Subject,
+                        ticket.Message);
+                }
+                catch
+                {
+                    // Email delivery logged in service
+                }
             });
 
             return Ok(new
@@ -122,6 +137,57 @@ namespace CoachOS.Api.Controllers.Common
             return Ok(new { isSuccess = true, data = list });
         }
 
+        [HttpGet("unread-count")]
+        public IActionResult GetUnreadCount()
+        {
+            var userIdStr = _currentUserService.UserId?.ToString();
+            var userEmail = User.FindFirstValue(ClaimTypes.Email);
+
+            var count = _tickets
+                .Where(t => (string.IsNullOrEmpty(userIdStr) || t.UserId == userIdStr || (!string.IsNullOrEmpty(userEmail) && t.UserEmail == userEmail)) && t.HasUnreadReply)
+                .Count();
+
+            return Ok(new { isSuccess = true, unreadCount = count });
+        }
+
+        [HttpPost("ticket/{ticketId}/read")]
+        public IActionResult MarkTicketAsRead(string ticketId)
+        {
+            var ticket = _tickets.FirstOrDefault(t => t.Id == ticketId || t.TicketNumber == ticketId);
+            if (ticket != null)
+            {
+                ticket.HasUnreadReply = false;
+                ticket.UnreadRepliesCount = 0;
+            }
+            return Ok(new { isSuccess = true, message = "Ticket marked as read." });
+        }
+
+        [HttpPost("ticket/{ticketId}/status")]
+        public IActionResult UpdateTicketStatus(string ticketId, [FromBody] UpdateTicketStatusRequest dto)
+        {
+            var ticket = _tickets.FirstOrDefault(t => t.Id == ticketId || t.TicketNumber == ticketId);
+            if (ticket == null)
+            {
+                return NotFound(new { isSuccess = false, message = "Ticket not found." });
+            }
+
+            ticket.Status = !string.IsNullOrWhiteSpace(dto?.Status) ? dto.Status : "Closed";
+            return Ok(new { isSuccess = true, message = $"Ticket status updated to {ticket.Status}.", ticket });
+        }
+
+        [HttpPost("ticket/{ticketId}/close")]
+        public IActionResult CloseTicket(string ticketId)
+        {
+            var ticket = _tickets.FirstOrDefault(t => t.Id == ticketId || t.TicketNumber == ticketId);
+            if (ticket == null)
+            {
+                return NotFound(new { isSuccess = false, message = "Ticket not found." });
+            }
+
+            ticket.Status = "Closed";
+            return Ok(new { isSuccess = true, message = "Ticket closed successfully.", ticket });
+        }
+
         [HttpPost("reply")]
         public async Task<IActionResult> ReplyToTicket([FromBody] ReplySupportTicketDto dto)
         {
@@ -150,17 +216,28 @@ namespace CoachOS.Api.Controllers.Common
 
             ticket.Replies.Add(reply);
             ticket.Status = dto.NewStatus ?? "In Progress";
+            ticket.HasUnreadReply = true;
+            ticket.UnreadRepliesCount++;
+            ticket.LastRepliedAt = DateTime.UtcNow;
+            ticket.LastRepliedBy = adminName;
 
             // Send email reply back to the user
             _ = Task.Run(async () =>
             {
-                await _emailService.SendSupportTicketReplyAsync(
-                    ticket.UserEmail,
-                    ticket.UserName,
-                    ticket.TicketNumber,
-                    ticket.Subject,
-                    dto.ReplyMessage,
-                    adminName);
+                try
+                {
+                    await _emailService.SendSupportTicketReplyAsync(
+                        ticket.UserEmail,
+                        ticket.UserName,
+                        ticket.TicketNumber,
+                        ticket.Subject,
+                        dto.ReplyMessage,
+                        adminName);
+                }
+                catch
+                {
+                    // Email logging handled
+                }
             });
 
             return Ok(new

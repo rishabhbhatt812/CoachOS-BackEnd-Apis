@@ -37,6 +37,14 @@ namespace CoachOS.Application.Interfaces.Services
             string subject,
             string message);
 
+        Task<bool> SendSupportTicketConfirmationToUserAsync(
+            string toEmail,
+            string recipientName,
+            string ticketId,
+            string category,
+            string subject,
+            string message);
+
         Task<bool> SendSupportTicketReplyAsync(
             string toEmail,
             string recipientName,
