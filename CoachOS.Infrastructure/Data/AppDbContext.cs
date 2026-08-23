@@ -113,14 +113,14 @@ public class AppDbContext : DbContext
             entity.Property(x => x.InstituteCode).HasMaxLength(50).IsRequired();
             entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
             entity.Property(x => x.ShortName).HasMaxLength(50);
-            entity.Property(x => x.LogoPath).HasMaxLength(500);
-            entity.Property(x => x.Description).HasMaxLength(1000);
+            entity.Property(x => x.LogoPath); // Allows base64 data URLs & file URLs
+            entity.Property(x => x.Description);
+            entity.Property(x => x.WebsiteUrl);
 
-            entity.Property(x => x.ContactPersonName).HasMaxLength(150).IsRequired();
-            entity.Property(x => x.MobileNumber).HasMaxLength(20).IsRequired();
+            entity.Property(x => x.ContactPersonName).HasMaxLength(150);
+            entity.Property(x => x.MobileNumber).HasMaxLength(20);
             entity.Property(x => x.AlternateMobileNumber).HasMaxLength(20);
-            entity.Property(x => x.EmailAddress).HasMaxLength(150).IsRequired();
-            entity.Property(x => x.WebsiteUrl).HasMaxLength(250);
+            entity.Property(x => x.EmailAddress).HasMaxLength(150);
 
             entity.Property(x => x.AddressLine1).HasMaxLength(250).IsRequired();
             entity.Property(x => x.AddressLine2).HasMaxLength(250);

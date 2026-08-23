@@ -65,6 +65,12 @@ namespace CoachOS.Infrastructure.Services
 
             if (user == null) return new List<string>();
 
+            // Global Admin and Super Admin automatically have all system permissions
+            if (user.Role?.Code == "GLOBAL_ADMIN" || user.Role?.Code == "SUPER_ADMIN" || _currentUser.RoleCode == "GLOBAL_ADMIN" || _currentUser.RoleCode == "SUPER_ADMIN")
+            {
+                return SystemPermissions.Select(p => p.Code).ToList();
+            }
+
             // Role-level permissions
             var rolePerms = await _db.RolePermissions
                 .Where(rp => rp.RoleId == user.RoleId)

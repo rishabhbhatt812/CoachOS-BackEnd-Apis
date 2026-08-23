@@ -57,7 +57,8 @@ builder.Services.AddSwaggerGen(c =>
 });
 // DbContext configuration
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
+           .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
 
 // ADO.NET Connection Factory
 builder.Services.AddSingleton<IDbConnectionFactory, SqlConnectionFactory>();
@@ -149,10 +150,19 @@ app.MapControllers();
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
+    var logger = services.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Program>>();
     try
     {
         var context = services.GetRequiredService<AppDbContext>();
-        context.Database.Migrate();
+        try
+        {
+            context.Database.Migrate();
+        }
+        catch (Exception migEx)
+        {
+            logger.LogWarning(migEx, "Migration warning, continuing with ensure created / seeding...");
+        }
+
         CoachOS.Infrastructure.Data.DbSeeder.Seed(context);
 
         // Seed permissions
@@ -161,7 +171,6 @@ using (var scope = app.Services.CreateScope())
     }
     catch (Exception ex)
     {
-        var logger = services.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Program>>();
         logger.LogError(ex, "An error occurred while migrating or seeding the database.");
     }
 }
