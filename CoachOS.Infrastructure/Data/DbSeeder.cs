@@ -222,10 +222,19 @@ namespace CoachOS.Infrastructure.Data
                         Email = email,
                         MobileNumber = "9876543210",
                         Username = email,
-                        IsActive = true
+                        IsActive = true,
+                        PasswordSalt = string.Empty
                     };
                     user.PasswordHash = passwordHasher.HashPassword(user, password);
                     context.Users.Add(user);
+                    context.SaveChanges();
+                }
+                else
+                {
+                    user.IsActive = true;
+                    user.RoleId = roleId;
+                    user.PasswordSalt = string.Empty;
+                    user.PasswordHash = passwordHasher.HashPassword(user, password);
                     context.SaveChanges();
                 }
                 return user;
@@ -262,6 +271,10 @@ namespace CoachOS.Infrastructure.Data
             else
             {
                 studentId = studentUser.Id;
+                studentUser.IsActive = true;
+                studentUser.RoleId = studentRole.Id;
+                studentUser.PasswordHash = passwordHasher.HashPassword(studentUser, "Password123");
+                context.SaveChanges();
             }
 
             // 6. Seed Student record matching studentUser

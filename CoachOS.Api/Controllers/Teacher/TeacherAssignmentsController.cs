@@ -7,79 +7,132 @@ using CoachOS.Domain.Learning;
 using CoachOS.Shared.Requests;
 using CoachOS.Shared.Responses;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
 namespace CoachOS.Api.Controllers.Teacher
 {
+    public class CreateAssignmentUploadModel
+    {
+        [FromForm(Name = "title")]
+        public string Title { get; set; } = string.Empty;
+
+        [FromForm(Name = "description")]
+        public string? Description { get; set; }
+
+        [FromForm(Name = "dueDate")]
+        public DateTime DueDate { get; set; }
+
+        [FromForm(Name = "batchId")]
+        public Guid BatchId { get; set; }
+
+        [FromForm(Name = "subjectId")]
+        public Guid? SubjectId { get; set; }
+
+        [FromForm(Name = "file")]
+        public IFormFile? File { get; set; }
+    }
+
     [ApiController]
     [Route("api/teacher/assignments")]
-    [Authorize(Roles = "TEACHER,INSTITUTE_ADMIN,BRANCH_ADMIN,SUPER_ADMIN,GLOBAL_ADMIN")]
+    [Authorize(Roles = "TEACHER,ADMIN,INSTITUTE_ADMIN,BRANCH_ADMIN,SUPER_ADMIN,GLOBAL_ADMIN")]
     [ModuleAccess("LEARNING")]
     public class TeacherAssignmentsController : ControllerBase
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly ICurrentUserService _currentUserService;
+        private readonly IFileStorageService _fileStorageService;
 
-        public TeacherAssignmentsController(IUnitOfWork unitOfWork, ICurrentUserService currentUserService)
+        public TeacherAssignmentsController(
+            IUnitOfWork unitOfWork,
+            ICurrentUserService currentUserService,
+            IFileStorageService fileStorageService)
         {
             _unitOfWork = unitOfWork;
             _currentUserService = currentUserService;
+            _fileStorageService = fileStorageService;
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll([FromQuery] PaginationParams paginationParams)
+        public async Task<IActionResult> GetAll([FromQuery] PaginationParams? paginationParams)
         {
-            var paged = await _unitOfWork.Repository<Assignment>().GetPagedAsync(paginationParams);
+            var assignments = await _unitOfWork.Repository<Assignment>().GetAllAsync();
             var courses = await _unitOfWork.Repository<Course>().GetAllAsync();
             var batches = await _unitOfWork.Repository<Batch>().GetAllAsync();
             var subjects = await _unitOfWork.Repository<Subject>().GetAllAsync();
 
-            var dtos = paged.Data.Select(a => new AssignmentDto
+            var currentUserId = _currentUserService.UserId;
+            var isTeacher = _currentUserService.RoleCode == "TEACHER";
+
+            var filtered = assignments.Where(a => a.IsActive);
+            if (isTeacher && currentUserId.HasValue)
+            {
+                filtered = filtered.Where(a => a.CreatedByUserId == currentUserId.Value || a.CreatedByUserId == Guid.Empty);
+            }
+
+            var dtos = filtered.OrderByDescending(a => a.CreatedAt).Select(a => new
             {
                 Id = a.Id,
                 Title = a.Title,
                 Description = a.Description,
-                DueDate = a.DueDate,
+                DueDate = a.DueDate.ToString("yyyy-MM-dd"),
                 CourseId = a.CourseId,
                 BatchId = a.BatchId,
                 SubjectId = a.SubjectId,
-                CourseName = courses.FirstOrDefault(c => c.Id == a.CourseId)?.Name ?? "General",
+                CourseName = courses.FirstOrDefault(c => c.Id == a.CourseId)?.Name ?? "General Course",
                 BatchName = batches.FirstOrDefault(b => b.Id == a.BatchId)?.Name ?? "All Batches",
-                SubjectName = subjects.FirstOrDefault(s => s.Id == a.SubjectId)?.Name ?? "General",
-                FilePath = a.FilePath,
+                SubjectName = subjects.FirstOrDefault(s => s.Id == a.SubjectId)?.Name ?? "General Subject",
+                FilePath = !string.IsNullOrEmpty(a.FilePath) ? $"/api/teacher/assignments/download/{a.Id}" : null,
                 OriginalFileName = a.OriginalFileName,
-                CreatedAt = a.CreatedAt,
-                SubmissionCount = 0
+                CreatedAt = a.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss"),
+                Submissions = 0,
+                TotalStudents = 30
             }).ToList();
 
-            var result = new PagedResult<AssignmentDto>(dtos, paged.TotalCount, paged.CurrentPage, paged.PageSize);
-            return Ok(ApiResponse<PagedResult<AssignmentDto>>.Ok(result));
+            return Ok(ApiResponse<object>.Ok(dtos));
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] CreateAssignmentRequest request)
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> Create([FromForm] CreateAssignmentUploadModel model)
         {
-            if (string.IsNullOrWhiteSpace(request.Title))
-                return BadRequest(ApiResponse<AssignmentDto>.Fail("Title is required."));
+            if (string.IsNullOrWhiteSpace(model.Title))
+                return BadRequest(ApiResponse<object>.Fail("Title is required."));
 
-            var batch = await _unitOfWork.Repository<Batch>().GetByIdAsync(request.BatchId);
+            if (model.BatchId == Guid.Empty)
+                return BadRequest(ApiResponse<object>.Fail("Invalid Batch specified."));
+
+            var batch = await _unitOfWork.Repository<Batch>().GetByIdAsync(model.BatchId);
             if (batch == null)
-                return BadRequest(ApiResponse<AssignmentDto>.Fail("Invalid Batch specified."));
+                return BadRequest(ApiResponse<object>.Fail("Invalid Batch specified."));
+
+            string? savedRelativePath = null;
+            string? originalFileName = null;
+
+            if (model.File != null && model.File.Length > 0)
+            {
+                using (var stream = model.File.OpenReadStream())
+                {
+                    savedRelativePath = await _fileStorageService.SaveFileAsync(stream, model.File.FileName, "assignments");
+                }
+                originalFileName = model.File.FileName;
+            }
 
             var assignment = new Assignment
             {
-                Title = request.Title,
-                Description = request.Description,
-                DueDate = request.DueDate,
-                BatchId = request.BatchId,
+                Title = model.Title.Trim(),
+                Description = model.Description?.Trim(),
+                DueDate = model.DueDate != default ? model.DueDate : DateTime.UtcNow.AddDays(7),
+                BatchId = model.BatchId,
                 CourseId = batch.CourseId,
-                SubjectId = request.SubjectId,
-                FilePath = request.FilePath,
-                OriginalFileName = request.OriginalFileName,
+                SubjectId = model.SubjectId,
+                FilePath = savedRelativePath ?? "",
+                OriginalFileName = originalFileName ?? "",
                 CreatedByUserId = _currentUserService.UserId ?? Guid.Empty,
                 IsActive = true
             };
@@ -88,51 +141,64 @@ namespace CoachOS.Api.Controllers.Teacher
             await _unitOfWork.SaveChangesAsync();
 
             var course = await _unitOfWork.Repository<Course>().GetByIdAsync(batch.CourseId);
-            var subject = request.SubjectId.HasValue ? await _unitOfWork.Repository<Subject>().GetByIdAsync(request.SubjectId.Value) : null;
 
-            var dto = new AssignmentDto
+            var dto = new
             {
                 Id = assignment.Id,
                 Title = assignment.Title,
                 Description = assignment.Description,
-                DueDate = assignment.DueDate,
+                DueDate = assignment.DueDate.ToString("yyyy-MM-dd"),
                 CourseId = assignment.CourseId,
                 BatchId = assignment.BatchId,
-                SubjectId = assignment.SubjectId,
                 CourseName = course?.Name ?? "General",
                 BatchName = batch.Name,
-                SubjectName = subject?.Name ?? "General",
-                FilePath = assignment.FilePath,
+                FilePath = !string.IsNullOrEmpty(assignment.FilePath) ? $"/api/teacher/assignments/download/{assignment.Id}" : null,
                 OriginalFileName = assignment.OriginalFileName,
-                CreatedAt = assignment.CreatedAt,
-                SubmissionCount = 0
+                CreatedAt = assignment.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")
             };
 
-            return Ok(ApiResponse<AssignmentDto>.Ok(dto, "Assignment created successfully."));
+            return Ok(ApiResponse<object>.Ok(dto, "Assignment created successfully."));
         }
 
-        [HttpPut("{id}")]
-        public async Task<IActionResult> Update(Guid id, [FromBody] UpdateAssignmentRequest request)
+        [HttpGet("download/{id}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> Download(Guid id)
         {
             var assignment = await _unitOfWork.Repository<Assignment>().GetByIdAsync(id);
             if (assignment == null)
-                return NotFound(ApiResponse<AssignmentDto>.Fail("Assignment not found."));
-
-            assignment.Title = request.Title;
-            assignment.Description = request.Description;
-            assignment.DueDate = request.DueDate;
-            if (request.BatchId.HasValue)
             {
-                assignment.BatchId = request.BatchId.Value;
-                var batch = await _unitOfWork.Repository<Batch>().GetByIdAsync(request.BatchId.Value);
-                if (batch != null) assignment.CourseId = batch.CourseId;
+                return NotFound("Assignment not found.");
             }
-            if (request.SubjectId.HasValue) assignment.SubjectId = request.SubjectId.Value;
 
-            _unitOfWork.Repository<Assignment>().Update(assignment);
-            await _unitOfWork.SaveChangesAsync();
+            if (string.IsNullOrEmpty(assignment.FilePath))
+            {
+                return NotFound("No document attached to this assignment.");
+            }
 
-            return Ok(ApiResponse<bool>.Ok(true, "Assignment updated successfully."));
+            try
+            {
+                var fileBytes = await _fileStorageService.GetFileAsync(assignment.FilePath);
+                var ext = Path.GetExtension(assignment.FilePath).ToLower();
+                var contentType = ext switch
+                {
+                    ".pdf" => "application/pdf",
+                    ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    ".jpg" or ".jpeg" => "image/jpeg",
+                    ".png" => "image/png",
+                    ".zip" => "application/zip",
+                    _ => "application/octet-stream"
+                };
+
+                return File(fileBytes, contentType, assignment.OriginalFileName ?? "Assignment_Document.pdf");
+            }
+            catch (FileNotFoundException)
+            {
+                return NotFound("Physical file not found on server.");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error retrieving file: {ex.Message}");
+            }
         }
 
         [HttpDelete("{id}")]
@@ -141,6 +207,18 @@ namespace CoachOS.Api.Controllers.Teacher
             var assignment = await _unitOfWork.Repository<Assignment>().GetByIdAsync(id);
             if (assignment == null)
                 return NotFound(ApiResponse<bool>.Fail("Assignment not found."));
+
+            try
+            {
+                if (!string.IsNullOrEmpty(assignment.FilePath))
+                {
+                    _fileStorageService.DeleteFile(assignment.FilePath);
+                }
+            }
+            catch
+            {
+                // Ignore file system deletion error
+            }
 
             _unitOfWork.Repository<Assignment>().Remove(assignment);
             await _unitOfWork.SaveChangesAsync();

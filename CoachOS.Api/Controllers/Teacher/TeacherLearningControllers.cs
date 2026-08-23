@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -29,6 +30,16 @@ namespace CoachOS.Api.Controllers.Teacher
 
         [FromForm(Name = "file")]
         public IFormFile File { get; set; } = null!;
+    }
+
+    public class CreateTestModel
+    {
+        public string TestName { get; set; } = string.Empty;
+        public DateTime TestDate { get; set; }
+        public decimal MaxMarks { get; set; }
+        public Guid BatchId { get; set; }
+        public Guid? CourseId { get; set; }
+        public Guid? SubjectId { get; set; }
     }
 
     [ApiController]
@@ -225,29 +236,148 @@ namespace CoachOS.Api.Controllers.Teacher
     [ModuleAccess("LEARNING")]
     public class TeacherTestsController : ControllerBase
     {
-        private readonly ILearningService _learningService;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly ICurrentUserService _currentUserService;
 
-        public TeacherTestsController(ILearningService learningService)
+        public TeacherTestsController(
+            IUnitOfWork unitOfWork,
+            ICurrentUserService currentUserService)
         {
-            _learningService = learningService;
+            _unitOfWork = unitOfWork;
+            _currentUserService = currentUserService;
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll([FromQuery] PaginationParams paginationParams)
+        public async Task<IActionResult> GetAll([FromQuery] PaginationParams? paginationParams)
         {
-            return Ok(await _learningService.GetTestsAsync(paginationParams));
+            var tests = await _unitOfWork.Repository<Test>().GetAllAsync();
+            var courses = await _unitOfWork.Repository<Course>().GetAllAsync();
+            var batches = await _unitOfWork.Repository<Batch>().GetAllAsync();
+            var subjects = await _unitOfWork.Repository<Subject>().GetAllAsync();
+
+            var dtos = tests.OrderByDescending(t => t.TestDate).Select(t =>
+            {
+                var batch = batches.FirstOrDefault(b => b.Id == t.BatchId);
+                var course = courses.FirstOrDefault(c => c.Id == (t.CourseId != Guid.Empty ? t.CourseId : batch?.CourseId));
+                var subject = subjects.FirstOrDefault(s => s.Id == t.SubjectId);
+
+                return new
+                {
+                    Id = t.Id,
+                    TestName = t.TestName,
+                    TestDate = t.TestDate.ToString("yyyy-MM-dd"),
+                    MaxMarks = t.MaxMarks,
+                    CourseId = course?.Id ?? t.CourseId,
+                    CourseName = course?.Name ?? "General Course",
+                    BatchId = t.BatchId,
+                    BatchName = batch?.Name ?? "All Batches",
+                    SubjectId = t.SubjectId,
+                    SubjectName = subject?.Name ?? "General Subject"
+                };
+            }).ToList();
+
+            return Ok(ApiResponse<object>.Ok(dtos));
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] CoachOS.Application.Features.Learning.Dtos.CreateTestRequest request)
+        public async Task<IActionResult> Create([FromBody] CreateTestModel request)
         {
-            return Ok(await _learningService.CreateTestAsync(request));
+            if (string.IsNullOrWhiteSpace(request.TestName))
+                return BadRequest(ApiResponse<object>.Fail("Test name is required."));
+
+            if (request.BatchId == Guid.Empty)
+                return BadRequest(ApiResponse<object>.Fail("Target batch is required."));
+
+            var batch = await _unitOfWork.Repository<Batch>().GetByIdAsync(request.BatchId);
+            if (batch == null)
+                return BadRequest(ApiResponse<object>.Fail("Invalid Batch specified."));
+
+            var courseId = request.CourseId.HasValue && request.CourseId.Value != Guid.Empty ? request.CourseId.Value : batch.CourseId;
+            var testDate = request.TestDate != default ? DateOnly.FromDateTime(request.TestDate) : DateOnly.FromDateTime(DateTime.UtcNow);
+
+            var test = new Test
+            {
+                TestName = request.TestName.Trim(),
+                TestDate = testDate,
+                MaxMarks = request.MaxMarks > 0 ? request.MaxMarks : 100,
+                BatchId = request.BatchId,
+                CourseId = courseId,
+                SubjectId = request.SubjectId
+            };
+
+            await _unitOfWork.Repository<Test>().AddAsync(test);
+            await _unitOfWork.SaveChangesAsync();
+
+            var course = await _unitOfWork.Repository<Course>().GetByIdAsync(courseId);
+            var subject = request.SubjectId.HasValue ? await _unitOfWork.Repository<Subject>().GetByIdAsync(request.SubjectId.Value) : null;
+
+            var dto = new
+            {
+                Id = test.Id,
+                TestName = test.TestName,
+                TestDate = test.TestDate.ToString("yyyy-MM-dd"),
+                MaxMarks = test.MaxMarks,
+                CourseName = course?.Name ?? "General Course",
+                BatchName = batch.Name,
+                SubjectName = subject?.Name ?? "General Subject"
+            };
+
+            return Ok(ApiResponse<object>.Ok(dto, "Test scheduled successfully."));
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(Guid id, [FromBody] CreateTestModel request)
+        {
+            var test = await _unitOfWork.Repository<Test>().GetByIdAsync(id);
+            if (test == null)
+                return NotFound(ApiResponse<bool>.Fail("Test not found."));
+
+            if (!string.IsNullOrWhiteSpace(request.TestName))
+                test.TestName = request.TestName.Trim();
+
+            if (request.MaxMarks > 0)
+                test.MaxMarks = request.MaxMarks;
+
+            if (request.TestDate != default)
+                test.TestDate = DateOnly.FromDateTime(request.TestDate);
+
+            if (request.BatchId != Guid.Empty)
+            {
+                test.BatchId = request.BatchId;
+                var batch = await _unitOfWork.Repository<Batch>().GetByIdAsync(request.BatchId);
+                if (batch != null)
+                {
+                    test.CourseId = batch.CourseId;
+                }
+            }
+
+            if (request.SubjectId.HasValue)
+                test.SubjectId = request.SubjectId;
+
+            _unitOfWork.Repository<Test>().Update(test);
+            await _unitOfWork.SaveChangesAsync();
+
+            return Ok(ApiResponse<bool>.Ok(true, "Test updated successfully."));
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(Guid id)
         {
-            return Ok(await _learningService.DeleteTestAsync(id));
+            var test = await _unitOfWork.Repository<Test>().GetByIdAsync(id);
+            if (test == null)
+                return NotFound(ApiResponse<bool>.Fail("Test not found."));
+
+            var results = (await _unitOfWork.Repository<TestResult>().GetAllAsync())
+                .Where(r => r.TestId == id).ToList();
+            foreach (var r in results)
+            {
+                _unitOfWork.Repository<TestResult>().Remove(r);
+            }
+
+            _unitOfWork.Repository<Test>().Remove(test);
+            await _unitOfWork.SaveChangesAsync();
+
+            return Ok(ApiResponse<bool>.Ok(true, "Test deleted successfully."));
         }
     }
 }
