@@ -592,7 +592,8 @@ namespace CoachOS.Infrastructure.Data
             }
 
             // 21. Seed Vacancies
-            if (!context.Vacancies.IgnoreQueryFilters().Any())
+            var existingVacancies = context.Vacancies.IgnoreQueryFilters().ToList();
+            if (!existingVacancies.Any(v => v.Title.Contains("SSC CGL 2026")))
             {
                 var vacancy1 = new Vacancy
                 {
@@ -612,6 +613,11 @@ namespace CoachOS.Infrastructure.Data
                     EligibilityDetails = "Must possess a Bachelor's Degree in any discipline from a recognized University.",
                     IsActive = true
                 };
+                context.Vacancies.Add(vacancy1);
+            }
+
+            if (!existingVacancies.Any(v => v.Title.Contains("IBPS PO")))
+            {
                 var vacancy2 = new Vacancy
                 {
                     InstituteId = institute.Id,
@@ -630,6 +636,11 @@ namespace CoachOS.Infrastructure.Data
                     EligibilityDetails = "A Degree (Graduation) in any discipline from a University recognized by the Govt. Of India.",
                     IsActive = true
                 };
+                context.Vacancies.Add(vacancy2);
+            }
+
+            if (!existingVacancies.Any(v => v.Title.Contains("NDA & NA")))
+            {
                 var vacancy3 = new Vacancy
                 {
                     InstituteId = institute.Id,
@@ -648,6 +659,11 @@ namespace CoachOS.Infrastructure.Data
                     EligibilityDetails = "12th Class pass of the 10+2 pattern of School Education with Physics, Chemistry and Mathematics for Air Force and Navy.",
                     IsActive = true
                 };
+                context.Vacancies.Add(vacancy3);
+            }
+
+            if (!existingVacancies.Any(v => v.Title.Contains("RRB")))
+            {
                 var vacancy4 = new Vacancy
                 {
                     InstituteId = institute.Id,
@@ -666,9 +682,9 @@ namespace CoachOS.Infrastructure.Data
                     EligibilityDetails = "12th (+2 Stage) or equivalent for Under Graduate Posts, and University Degree or its equivalent for Graduate level posts.",
                     IsActive = true
                 };
-                context.Vacancies.AddRange(vacancy1, vacancy2, vacancy3, vacancy4);
-                context.SaveChanges();
+                context.Vacancies.Add(vacancy4);
             }
+            context.SaveChanges();
 
             // 22. Seed Assignments
             if (!context.Assignments.IgnoreQueryFilters().Any())
