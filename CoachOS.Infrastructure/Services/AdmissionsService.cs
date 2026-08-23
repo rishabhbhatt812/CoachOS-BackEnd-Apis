@@ -27,6 +27,7 @@ namespace CoachOS.Infrastructure.Services
         {
             var student = new Student
             {
+                InstituteId = request.InstituteId ?? Guid.Empty,
                 StudentCode = "STU-" + DateTime.UtcNow.Ticks.ToString().Substring(8),
                 FullName = request.FullName,
                 Mobile = request.Mobile,
@@ -66,6 +67,7 @@ namespace CoachOS.Infrastructure.Services
 
             var studentBatch = new StudentBatch
             {
+                InstituteId = student.InstituteId,
                 StudentId = student.Id,
                 BatchId = request.BatchId,
                 JoinedDate = DateOnly.FromDateTime(DateTime.UtcNow),
@@ -80,7 +82,7 @@ namespace CoachOS.Infrastructure.Services
             {
                 _ = Task.Run(async () =>
                 {
-                    var batch = await _db.Batches.Include(b => b.Course).FirstOrDefaultAsync(b => b.Id == request.BatchId);
+                    var batch = await _db.Batches.IgnoreQueryFilters().Include(b => b.Course).FirstOrDefaultAsync(b => b.Id == request.BatchId);
                     await _emailService.SendStudentWelcomeEmailAsync(
                         student.Email,
                         student.FullName,
@@ -103,6 +105,7 @@ namespace CoachOS.Infrastructure.Services
                 // 1. Create Student
                 var student = new Student
                 {
+                    InstituteId = request.InstituteId ?? Guid.Empty,
                     StudentCode = request.StudentCode,
                     FullName = request.FullName,
                     Mobile = request.Mobile,
@@ -144,6 +147,7 @@ namespace CoachOS.Infrastructure.Services
                 // 2. Create Parent
                 var parent = new Parent
                 {
+                    InstituteId = student.InstituteId,
                     FullName = request.ParentName,
                     Mobile = request.ParentMobile,
                     Email = request.ParentEmail,
@@ -154,6 +158,7 @@ namespace CoachOS.Infrastructure.Services
 
                 var studentParent = new StudentParent
                 {
+                    InstituteId = student.InstituteId,
                     StudentId = student.Id,
                     ParentId = parent.Id,
                     RelationshipType = request.ParentRelationship
@@ -164,6 +169,7 @@ namespace CoachOS.Infrastructure.Services
                 // 3. Create StudentBatch
                 var studentBatch = new StudentBatch
                 {
+                    InstituteId = student.InstituteId,
                     StudentId = student.Id,
                     BatchId = request.BatchId,
                     JoinedDate = DateOnly.FromDateTime(DateTime.UtcNow),
@@ -174,6 +180,7 @@ namespace CoachOS.Infrastructure.Services
                 // 4. Create FeePlan
                 var feePlan = new FeePlan
                 {
+                    InstituteId = student.InstituteId,
                     StudentId = student.Id,
                     CourseId = request.CourseId,
                     BatchId = request.BatchId,

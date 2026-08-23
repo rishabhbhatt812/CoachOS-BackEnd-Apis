@@ -4,6 +4,7 @@ namespace CoachOS.Application.Features.Staff.Dtos
 {
     public class CreateStaffRequest
     {
+        public Guid? InstituteId { get; set; }
         public string FullName { get; set; } = string.Empty;
         public string? Email { get; set; }
         public string? MobileNumber { get; set; }
@@ -70,6 +71,8 @@ namespace CoachOS.Application.Features.Staff.Dtos
     {
         public Guid Id { get; set; } // UserId
         public Guid InstituteId { get; set; }
+        public string? InstituteName { get; set; }
+        public string? InstituteCode { get; set; }
         public Guid? BranchId { get; set; }
         public string? BranchName { get; set; }
         public string FullName { get; set; } = string.Empty;
@@ -122,6 +125,8 @@ namespace CoachOS.Application.Features.Staff.Dtos
     {
         public Guid Id { get; set; } // UserId
         public Guid InstituteId { get; set; }
+        public string? InstituteName { get; set; }
+        public string? InstituteCode { get; set; }
         public Guid? BranchId { get; set; }
         public string? BranchName { get; set; }
         public string FullName { get; set; } = string.Empty;

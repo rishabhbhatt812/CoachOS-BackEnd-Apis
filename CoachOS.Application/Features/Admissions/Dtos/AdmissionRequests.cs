@@ -5,6 +5,7 @@ namespace CoachOS.Application.Features.Admissions.Dtos
 {
     public class QuickAdmissionRequest
     {
+        public Guid? InstituteId { get; set; }
         public string FullName { get; set; } = string.Empty;
         public string Mobile { get; set; } = string.Empty;
         public string? Email { get; set; }
@@ -14,6 +15,9 @@ namespace CoachOS.Application.Features.Admissions.Dtos
 
     public class FullAdmissionRequest
     {
+        // Institute Details (for SuperAdmin creation)
+        public Guid? InstituteId { get; set; }
+
         // Student Details
         public string StudentCode { get; set; } = string.Empty;
         public string FullName { get; set; } = string.Empty;

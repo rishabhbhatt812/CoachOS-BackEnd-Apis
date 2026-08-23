@@ -210,7 +210,7 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.ModuleId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasQueryFilter(e => !e.IsDeleted && e.InstituteId == _currentUserService.InstituteId);
+            entity.HasQueryFilter(e => !e.IsDeleted && (_currentUserService.InstituteId == null || e.InstituteId == _currentUserService.InstituteId));
         });
 
         modelBuilder.Entity<User>(entity =>
@@ -240,7 +240,7 @@ public class AppDbContext : DbContext
             entity.Property(x => x.CreatedAt).HasColumnName("CreatedOn");
             entity.Property(x => x.UpdatedAt).HasColumnName("UpdatedOn");
 
-            entity.HasQueryFilter(e => !e.IsDeleted && e.InstituteId == _currentUserService.InstituteId);
+            entity.HasQueryFilter(e => !e.IsDeleted && (_currentUserService.InstituteId == null || e.InstituteId == _currentUserService.InstituteId));
         });
 
         // --- Academic Configurations ---
@@ -257,7 +257,7 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasIndex(x => new { x.UserId, x.SubjectId }).IsUnique();
-            entity.HasQueryFilter(e => !e.IsDeleted && e.InstituteId == _currentUserService.InstituteId);
+            entity.HasQueryFilter(e => !e.IsDeleted && (_currentUserService.InstituteId == null || e.InstituteId == _currentUserService.InstituteId));
         });
 
         modelBuilder.Entity<StaffProfile>(entity =>
@@ -283,7 +283,7 @@ public class AppDbContext : DbContext
             entity.Property(x => x.CreatedAt).HasColumnName("CreatedOn");
             entity.Property(x => x.UpdatedAt).HasColumnName("UpdatedOn");
 
-            entity.HasQueryFilter(e => !e.IsDeleted && e.InstituteId == _currentUserService.InstituteId);
+            entity.HasQueryFilter(e => !e.IsDeleted && (_currentUserService.InstituteId == null || e.InstituteId == _currentUserService.InstituteId));
         });
 
         modelBuilder.Entity<TeacherProfile>(entity =>
@@ -302,7 +302,7 @@ public class AppDbContext : DbContext
             entity.Property(x => x.CreatedAt).HasColumnName("CreatedOn");
             entity.Property(x => x.UpdatedAt).HasColumnName("UpdatedOn");
 
-            entity.HasQueryFilter(e => !e.IsDeleted && e.InstituteId == _currentUserService.InstituteId);
+            entity.HasQueryFilter(e => !e.IsDeleted && (_currentUserService.InstituteId == null || e.InstituteId == _currentUserService.InstituteId));
         });
 
         modelBuilder.Entity<TeacherQualification>(entity =>
@@ -311,7 +311,7 @@ public class AppDbContext : DbContext
                 .WithMany(x => x.Qualifications)
                 .HasForeignKey(x => x.TeacherProfileId)
                 .OnDelete(DeleteBehavior.Restrict);
-            entity.HasQueryFilter(e => !e.IsDeleted && e.InstituteId == _currentUserService.InstituteId);
+            entity.HasQueryFilter(e => !e.IsDeleted && (_currentUserService.InstituteId == null || e.InstituteId == _currentUserService.InstituteId));
         });
 
         modelBuilder.Entity<TeacherDocument>(entity =>
@@ -320,7 +320,7 @@ public class AppDbContext : DbContext
                 .WithMany(x => x.Documents)
                 .HasForeignKey(x => x.TeacherProfileId)
                 .OnDelete(DeleteBehavior.Restrict);
-            entity.HasQueryFilter(e => !e.IsDeleted && e.InstituteId == _currentUserService.InstituteId);
+            entity.HasQueryFilter(e => !e.IsDeleted && (_currentUserService.InstituteId == null || e.InstituteId == _currentUserService.InstituteId));
         });
 
         modelBuilder.Entity<TeacherSalary>(entity =>
@@ -329,7 +329,7 @@ public class AppDbContext : DbContext
                 .WithOne(x => x.Salary)
                 .HasForeignKey<TeacherSalary>(x => x.TeacherProfileId)
                 .OnDelete(DeleteBehavior.Restrict);
-            entity.HasQueryFilter(e => !e.IsDeleted && e.InstituteId == _currentUserService.InstituteId);
+            entity.HasQueryFilter(e => !e.IsDeleted && (_currentUserService.InstituteId == null || e.InstituteId == _currentUserService.InstituteId));
         });
 
         modelBuilder.Entity<EmergencyContact>(entity =>
@@ -338,7 +338,7 @@ public class AppDbContext : DbContext
                 .WithOne(x => x.EmergencyContact)
                 .HasForeignKey<EmergencyContact>(x => x.TeacherProfileId)
                 .OnDelete(DeleteBehavior.Restrict);
-            entity.HasQueryFilter(e => !e.IsDeleted && e.InstituteId == _currentUserService.InstituteId);
+            entity.HasQueryFilter(e => !e.IsDeleted && (_currentUserService.InstituteId == null || e.InstituteId == _currentUserService.InstituteId));
         });
 
         modelBuilder.Entity<TeacherBatch>(entity =>
@@ -359,20 +359,20 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.SubjectId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasQueryFilter(e => !e.IsDeleted && e.InstituteId == _currentUserService.InstituteId);
+            entity.HasQueryFilter(e => !e.IsDeleted && (_currentUserService.InstituteId == null || e.InstituteId == _currentUserService.InstituteId));
         });
 
         modelBuilder.Entity<AcademicSession>(entity =>
         {
             entity.Property(x => x.Name).HasMaxLength(50).IsRequired();
-            entity.HasQueryFilter(e => !e.IsDeleted && e.InstituteId == _currentUserService.InstituteId);
+            entity.HasQueryFilter(e => !e.IsDeleted && (_currentUserService.InstituteId == null || e.InstituteId == _currentUserService.InstituteId));
         });
 
         modelBuilder.Entity<Course>(entity =>
         {
             entity.Property(x => x.Name).HasMaxLength(150).IsRequired();
             entity.HasIndex(x => x.InstituteId);
-            entity.HasQueryFilter(e => !e.IsDeleted && e.InstituteId == _currentUserService.InstituteId);
+            entity.HasQueryFilter(e => !e.IsDeleted && (_currentUserService.InstituteId == null || e.InstituteId == _currentUserService.InstituteId));
         });
 
         modelBuilder.Entity<CourseFeeStructure>(entity =>
@@ -381,7 +381,7 @@ public class AppDbContext : DbContext
                 .WithMany(x => x.FeeStructures)
                 .HasForeignKey(x => x.CourseId)
                 .OnDelete(DeleteBehavior.Restrict);
-            entity.HasQueryFilter(e => !e.IsDeleted && e.InstituteId == _currentUserService.InstituteId);
+            entity.HasQueryFilter(e => !e.IsDeleted && (_currentUserService.InstituteId == null || e.InstituteId == _currentUserService.InstituteId));
         });
 
         modelBuilder.Entity<Subject>(entity =>
@@ -393,7 +393,7 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.CourseId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasQueryFilter(e => !e.IsDeleted && e.InstituteId == _currentUserService.InstituteId);
+            entity.HasQueryFilter(e => !e.IsDeleted && (_currentUserService.InstituteId == null || e.InstituteId == _currentUserService.InstituteId));
         });
 
         modelBuilder.Entity<Batch>(entity =>
@@ -413,7 +413,7 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.BranchId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasQueryFilter(e => !e.IsDeleted && e.InstituteId == _currentUserService.InstituteId);
+            entity.HasQueryFilter(e => !e.IsDeleted && (_currentUserService.InstituteId == null || e.InstituteId == _currentUserService.InstituteId));
         });
 
         modelBuilder.Entity<Branch>(entity =>
@@ -423,7 +423,7 @@ public class AppDbContext : DbContext
             entity.Property(x => x.Address).HasMaxLength(500);
             entity.Property(x => x.ContactNumber).HasMaxLength(50);
             entity.HasIndex(x => x.InstituteId);
-            entity.HasQueryFilter(e => !e.IsDeleted && e.InstituteId == _currentUserService.InstituteId);
+            entity.HasQueryFilter(e => !e.IsDeleted && (_currentUserService.InstituteId == null || e.InstituteId == _currentUserService.InstituteId));
         });
 
         modelBuilder.Entity<BatchSchedule>(entity =>
@@ -438,7 +438,7 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.TeacherProfileId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasQueryFilter(e => !e.IsDeleted && e.InstituteId == _currentUserService.InstituteId);
+            entity.HasQueryFilter(e => !e.IsDeleted && (_currentUserService.InstituteId == null || e.InstituteId == _currentUserService.InstituteId));
         });
 
         // --- Student Configurations ---
@@ -453,7 +453,7 @@ public class AppDbContext : DbContext
             entity.HasIndex(x => x.Mobile);
             entity.HasIndex(x => x.StudentCode);
 
-            entity.HasQueryFilter(e => !e.IsDeleted && e.InstituteId == _currentUserService.InstituteId);
+            entity.HasQueryFilter(e => !e.IsDeleted && (_currentUserService.InstituteId == null || e.InstituteId == _currentUserService.InstituteId));
         });
 
         modelBuilder.Entity<StudentBatch>(entity =>
@@ -471,7 +471,7 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.BatchId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasQueryFilter(e => !e.IsDeleted && e.InstituteId == _currentUserService.InstituteId);
+            entity.HasQueryFilter(e => !e.IsDeleted && (_currentUserService.InstituteId == null || e.InstituteId == _currentUserService.InstituteId));
         });
 
         modelBuilder.Entity<StudentDocument>(entity =>
@@ -486,7 +486,7 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.StudentId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasQueryFilter(e => !e.IsDeleted && e.InstituteId == _currentUserService.InstituteId);
+            entity.HasQueryFilter(e => !e.IsDeleted && (_currentUserService.InstituteId == null || e.InstituteId == _currentUserService.InstituteId));
         });
 
         // --- CRM Configurations ---
@@ -510,7 +510,7 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.AssignedToUserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasQueryFilter(e => !e.IsDeleted && e.InstituteId == _currentUserService.InstituteId);
+            entity.HasQueryFilter(e => !e.IsDeleted && (_currentUserService.InstituteId == null || e.InstituteId == _currentUserService.InstituteId));
         });
 
         modelBuilder.Entity<FollowUp>(entity =>
@@ -522,7 +522,7 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.EnquiryId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasQueryFilter(e => !e.IsDeleted && e.InstituteId == _currentUserService.InstituteId);
+            entity.HasQueryFilter(e => !e.IsDeleted && (_currentUserService.InstituteId == null || e.InstituteId == _currentUserService.InstituteId));
         });
 
         modelBuilder.Entity<DemoClass>(entity =>
@@ -539,7 +539,7 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.BatchId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasQueryFilter(e => !e.IsDeleted && e.InstituteId == _currentUserService.InstituteId);
+            entity.HasQueryFilter(e => !e.IsDeleted && (_currentUserService.InstituteId == null || e.InstituteId == _currentUserService.InstituteId));
         });
 
         // --- Fee Configurations ---
@@ -567,7 +567,7 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.BatchId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasQueryFilter(e => !e.IsDeleted && e.InstituteId == _currentUserService.InstituteId);
+            entity.HasQueryFilter(e => !e.IsDeleted && (_currentUserService.InstituteId == null || e.InstituteId == _currentUserService.InstituteId));
         });
 
         modelBuilder.Entity<Installment>(entity =>
@@ -583,7 +583,7 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.FeePlanId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasQueryFilter(e => !e.IsDeleted && e.InstituteId == _currentUserService.InstituteId);
+            entity.HasQueryFilter(e => !e.IsDeleted && (_currentUserService.InstituteId == null || e.InstituteId == _currentUserService.InstituteId));
         });
 
         modelBuilder.Entity<Payment>(entity =>
@@ -610,7 +610,7 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.InstallmentId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasQueryFilter(e => !e.IsDeleted && e.InstituteId == _currentUserService.InstituteId);
+            entity.HasQueryFilter(e => !e.IsDeleted && (_currentUserService.InstituteId == null || e.InstituteId == _currentUserService.InstituteId));
         });
 
         modelBuilder.Entity<PaymentTransaction>(entity =>
@@ -625,7 +625,7 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.PaymentId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasQueryFilter(e => !e.IsDeleted && e.InstituteId == _currentUserService.InstituteId);
+            entity.HasQueryFilter(e => !e.IsDeleted && (_currentUserService.InstituteId == null || e.InstituteId == _currentUserService.InstituteId));
         });
 
         modelBuilder.Entity<Expense>(entity =>
@@ -633,7 +633,7 @@ public class AppDbContext : DbContext
             entity.Property(x => x.Amount).HasPrecision(18, 2);
             entity.Property(x => x.Category).HasMaxLength(100).IsRequired();
 
-            entity.HasQueryFilter(e => !e.IsDeleted && e.InstituteId == _currentUserService.InstituteId);
+            entity.HasQueryFilter(e => !e.IsDeleted && (_currentUserService.InstituteId == null || e.InstituteId == _currentUserService.InstituteId));
         });
 
         // --- Learning Configurations ---
@@ -652,7 +652,7 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.TakenByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasQueryFilter(e => !e.IsDeleted && e.InstituteId == _currentUserService.InstituteId);
+            entity.HasQueryFilter(e => !e.IsDeleted && (_currentUserService.InstituteId == null || e.InstituteId == _currentUserService.InstituteId));
         });
 
         modelBuilder.Entity<AttendanceRecord>(entity =>
@@ -669,7 +669,7 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.StudentId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasQueryFilter(e => !e.IsDeleted && e.InstituteId == _currentUserService.InstituteId);
+            entity.HasQueryFilter(e => !e.IsDeleted && (_currentUserService.InstituteId == null || e.InstituteId == _currentUserService.InstituteId));
         });
 
         modelBuilder.Entity<Test>(entity =>
@@ -692,7 +692,7 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.SubjectId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasQueryFilter(e => !e.IsDeleted && e.InstituteId == _currentUserService.InstituteId);
+            entity.HasQueryFilter(e => !e.IsDeleted && (_currentUserService.InstituteId == null || e.InstituteId == _currentUserService.InstituteId));
         });
 
         modelBuilder.Entity<TestResult>(entity =>
@@ -709,7 +709,7 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.StudentId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasQueryFilter(e => !e.IsDeleted && e.InstituteId == _currentUserService.InstituteId);
+            entity.HasQueryFilter(e => !e.IsDeleted && (_currentUserService.InstituteId == null || e.InstituteId == _currentUserService.InstituteId));
         });
 
         modelBuilder.Entity<Note>(entity =>
@@ -742,7 +742,7 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.UploadedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasQueryFilter(e => !e.IsDeleted && e.InstituteId == _currentUserService.InstituteId);
+            entity.HasQueryFilter(e => !e.IsDeleted && (_currentUserService.InstituteId == null || e.InstituteId == _currentUserService.InstituteId));
         });
 
         modelBuilder.Entity<Assignment>(entity =>
@@ -754,7 +754,7 @@ public class AppDbContext : DbContext
             entity.HasOne(x => x.Subject).WithMany().HasForeignKey(x => x.SubjectId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.CreatedByUser).WithMany().HasForeignKey(x => x.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
             
-            entity.HasQueryFilter(e => !e.IsDeleted && e.InstituteId == _currentUserService.InstituteId);
+            entity.HasQueryFilter(e => !e.IsDeleted && (_currentUserService.InstituteId == null || e.InstituteId == _currentUserService.InstituteId));
         });
 
         modelBuilder.Entity<AssignmentSubmission>(entity =>
@@ -763,7 +763,7 @@ public class AppDbContext : DbContext
             entity.HasOne(x => x.Student).WithMany().HasForeignKey(x => x.StudentId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.ReviewedByUser).WithMany().HasForeignKey(x => x.ReviewedByUserId).OnDelete(DeleteBehavior.Restrict);
             
-            entity.HasQueryFilter(e => !e.IsDeleted && e.InstituteId == _currentUserService.InstituteId);
+            entity.HasQueryFilter(e => !e.IsDeleted && (_currentUserService.InstituteId == null || e.InstituteId == _currentUserService.InstituteId));
         });
 
         modelBuilder.Entity<Doubt>(entity =>
@@ -776,7 +776,7 @@ public class AppDbContext : DbContext
             entity.HasOne(x => x.Batch).WithMany().HasForeignKey(x => x.BatchId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.Subject).WithMany().HasForeignKey(x => x.SubjectId).OnDelete(DeleteBehavior.Restrict);
             
-            entity.HasQueryFilter(e => !e.IsDeleted && e.InstituteId == _currentUserService.InstituteId);
+            entity.HasQueryFilter(e => !e.IsDeleted && (_currentUserService.InstituteId == null || e.InstituteId == _currentUserService.InstituteId));
         });
 
         modelBuilder.Entity<DoubtReply>(entity =>
@@ -784,7 +784,7 @@ public class AppDbContext : DbContext
             entity.HasOne(x => x.Doubt).WithMany(d => d.Replies).HasForeignKey(x => x.DoubtId).OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(x => x.RepliedByUser).WithMany().HasForeignKey(x => x.RepliedByUserId).OnDelete(DeleteBehavior.Restrict);
             
-            entity.HasQueryFilter(e => !e.IsDeleted && e.InstituteId == _currentUserService.InstituteId);
+            entity.HasQueryFilter(e => !e.IsDeleted && (_currentUserService.InstituteId == null || e.InstituteId == _currentUserService.InstituteId));
         });
 
         // --- Communication Configurations ---
@@ -803,7 +803,7 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.BatchId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasQueryFilter(e => !e.IsDeleted && e.InstituteId == _currentUserService.InstituteId);
+            entity.HasQueryFilter(e => !e.IsDeleted && (_currentUserService.InstituteId == null || e.InstituteId == _currentUserService.InstituteId));
         });
 
         modelBuilder.Entity<Vacancy>(entity =>
@@ -813,7 +813,7 @@ public class AppDbContext : DbContext
 
             entity.HasIndex(x => x.LastDate);
 
-            entity.HasQueryFilter(e => !e.IsDeleted && e.InstituteId == _currentUserService.InstituteId);
+            entity.HasQueryFilter(e => !e.IsDeleted && (_currentUserService.InstituteId == null || e.InstituteId == _currentUserService.InstituteId));
         });
 
         modelBuilder.Entity<VacancyCourseMapping>(entity =>
@@ -828,7 +828,7 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.CourseId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasQueryFilter(e => !e.IsDeleted && e.InstituteId == _currentUserService.InstituteId);
+            entity.HasQueryFilter(e => !e.IsDeleted && (_currentUserService.InstituteId == null || e.InstituteId == _currentUserService.InstituteId));
         });
 
         // --- Import/Export Configurations ---
@@ -838,7 +838,7 @@ public class AppDbContext : DbContext
             entity.Property(x => x.FileName).HasMaxLength(255).IsRequired();
             entity.Property(x => x.Status).HasMaxLength(30).IsRequired();
 
-            entity.HasQueryFilter(e => !e.IsDeleted && e.InstituteId == _currentUserService.InstituteId);
+            entity.HasQueryFilter(e => !e.IsDeleted && (_currentUserService.InstituteId == null || e.InstituteId == _currentUserService.InstituteId));
         });
 
         modelBuilder.Entity<ImportJobError>(entity =>
@@ -850,7 +850,7 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.ImportJobId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasQueryFilter(e => !e.IsDeleted && e.InstituteId == _currentUserService.InstituteId);
+            entity.HasQueryFilter(e => !e.IsDeleted && (_currentUserService.InstituteId == null || e.InstituteId == _currentUserService.InstituteId));
         });
 
         // --- UserPermission Configuration ---
@@ -892,7 +892,7 @@ public class AppDbContext : DbContext
             entity.Property(x => x.LinkUrl).HasMaxLength(500);
             entity.HasIndex(x => x.UserId);
             entity.HasIndex(x => x.IsRead);
-            entity.HasQueryFilter(e => !e.IsDeleted && e.InstituteId == _currentUserService.InstituteId);
+            entity.HasQueryFilter(e => !e.IsDeleted && (_currentUserService.InstituteId == null || e.InstituteId == _currentUserService.InstituteId));
         });
 
         // --- Parent / StudentParent Configuration ---

@@ -5,6 +5,9 @@ namespace CoachOS.Application.DTOs
     public class StudentDto
     {
         public Guid Id { get; set; }
+        public Guid InstituteId { get; set; }
+        public string? InstituteName { get; set; }
+        public string? InstituteCode { get; set; }
         public string StudentCode { get; set; } = string.Empty;
         public string FullName { get; set; } = string.Empty;
         public string Mobile { get; set; } = string.Empty;
@@ -22,6 +25,7 @@ namespace CoachOS.Application.DTOs
 
     public class StudentCreateRequest
     {
+        public Guid? InstituteId { get; set; }
         public string FullName { get; set; } = string.Empty;
         public string Mobile { get; set; } = string.Empty;
         public string? Email { get; set; }

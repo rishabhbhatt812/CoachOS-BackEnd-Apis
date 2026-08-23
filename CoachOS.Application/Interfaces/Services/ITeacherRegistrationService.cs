@@ -13,6 +13,9 @@ namespace CoachOS.Application.Interfaces.Services
 
     public class RegisterTeacherDto
     {
+        // Target Institute (for Super Admin registration)
+        public Guid? InstituteId { get; set; }
+
         // Basic Info
         public string FullName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;

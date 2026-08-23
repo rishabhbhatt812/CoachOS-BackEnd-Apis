@@ -37,10 +37,15 @@ namespace CoachOS.Api.Controllers.Admin
 
             var teacherSubjects = await _unitOfWork.Repository<TeacherSubject>().GetAllAsync();
             var subjects = await _unitOfWork.Repository<CoachOS.Domain.Academic.Subject>().GetAllAsync();
+            var institutes = await _unitOfWork.Repository<CoachOS.Domain.Tenancy.Institute>().GetAllAsync();
+            var instituteMap = institutes.ToDictionary(i => i.Id);
 
             var result = teachers.Select(t => new
             {
                 t.Id,
+                t.InstituteId,
+                InstituteName = instituteMap.TryGetValue(t.InstituteId, out var inst) ? inst.Name : "Apex Coaching Academy",
+                InstituteCode = instituteMap.TryGetValue(t.InstituteId, out var instCode) ? instCode.InstituteCode : "INST001",
                 t.FullName,
                 t.Email,
                 Mobile = t.MobileNumber,

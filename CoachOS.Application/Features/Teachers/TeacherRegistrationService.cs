@@ -23,10 +23,12 @@ namespace CoachOS.Application.Features.Teachers
         public async Task<ApiResponse<Guid>> RegisterTeacherAsync(RegisterTeacherDto request)
         {
             var currentInstId = _currentUserService.InstituteId;
-            if (currentInstId == null || currentInstId.Value == Guid.Empty)
-                return ApiResponse<Guid>.Fail("Unauthorized. Institute ID context not found.");
+            var instituteId = (request.InstituteId.HasValue && request.InstituteId.Value != Guid.Empty) 
+                ? request.InstituteId.Value 
+                : (currentInstId ?? Guid.Empty);
 
-            var instituteId = currentInstId.Value;
+            if (instituteId == Guid.Empty)
+                return ApiResponse<Guid>.Fail("Unauthorized. Institute ID context not found.");
 
             var emailExists = await _unitOfWork.Repository<User>()
                 .AnyAsync(x => x.Email == request.Email, ignoreQueryFilters: true);

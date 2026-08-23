@@ -34,6 +34,19 @@ namespace CoachOS.Application.Features.Students
         {
             var studentsPaged = await _unitOfWork.Repository<Student>().GetPagedAsync(paginationParams);
             var studentsDto = studentsPaged.Data.Adapt<List<StudentDto>>();
+
+            var institutes = await _unitOfWork.Repository<CoachOS.Domain.Tenancy.Institute>().GetAllAsync();
+            var instituteMap = institutes.ToDictionary(i => i.Id);
+
+            foreach (var dto in studentsDto)
+            {
+                if (instituteMap.TryGetValue(dto.InstituteId, out var inst))
+                {
+                    dto.InstituteName = inst.Name;
+                    dto.InstituteCode = inst.InstituteCode;
+                }
+            }
+
             var result = new CoachOS.Shared.Responses.PagedResult<StudentDto>(studentsDto, studentsPaged.TotalCount, studentsPaged.CurrentPage, studentsPaged.PageSize);
             return ApiResponse<CoachOS.Shared.Responses.PagedResult<StudentDto>>.Ok(result);
         }
@@ -42,7 +55,16 @@ namespace CoachOS.Application.Features.Students
         {
             var student = await _unitOfWork.Repository<Student>().GetByIdAsync(id);
             if (student == null) return ApiResponse<StudentDto>.Fail("Student not found.");
-            return ApiResponse<StudentDto>.Ok(student.Adapt<StudentDto>());
+            var dto = student.Adapt<StudentDto>();
+
+            var institute = await _unitOfWork.Repository<CoachOS.Domain.Tenancy.Institute>().GetByIdAsync(student.InstituteId);
+            if (institute != null)
+            {
+                dto.InstituteName = institute.Name;
+                dto.InstituteCode = institute.InstituteCode;
+            }
+
+            return ApiResponse<StudentDto>.Ok(dto);
         }
 
         public async Task<ApiResponse<StudentDto>> UpdateStudentAsync(Guid id, UpdateStudentRequest request)

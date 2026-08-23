@@ -98,7 +98,14 @@ namespace CoachOS.Application.Features.Staff
                 return ApiResponse<Guid>.Fail(security.Error);
             }
 
-            var instituteId = _currentUserService.InstituteId!.Value;
+            var instituteId = (request.InstituteId.HasValue && request.InstituteId.Value != Guid.Empty) 
+                ? request.InstituteId.Value 
+                : (_currentUserService.InstituteId ?? Guid.Empty);
+
+            if (instituteId == Guid.Empty)
+            {
+                return ApiResponse<Guid>.Fail("Institute context or selection is required.");
+            }
 
             // 1. Validation
             var emailExists = !string.IsNullOrEmpty(request.Email) && await _unitOfWork.Repository<User>()
@@ -235,6 +242,8 @@ namespace CoachOS.Application.Features.Staff
             var teacherProfiles = await _unitOfWork.Repository<TeacherProfile>().GetAllAsync();
             var roles = await _unitOfWork.Repository<Role>().GetAllAsync();
             var branches = await _unitOfWork.Repository<Branch>().GetAllAsync();
+            var institutes = await _unitOfWork.Repository<CoachOS.Domain.Tenancy.Institute>().GetAllAsync();
+            var instituteMap = institutes.ToDictionary(i => i.Id);
 
             // Filter branch if branch admin
             var filteredUsers = users.AsEnumerable();
@@ -254,11 +263,14 @@ namespace CoachOS.Application.Features.Staff
                 var staffProfile = staffProfiles.FirstOrDefault(sp => sp.UserId == user.Id);
                 var teacherProfile = teacherProfiles.FirstOrDefault(tp => tp.UserId == user.Id);
                 var branch = branches.FirstOrDefault(b => b.Id == user.BranchId);
+                instituteMap.TryGetValue(user.InstituteId, out var inst);
 
                 var staffRes = new StaffResponse
                 {
                     Id = user.Id,
                     InstituteId = user.InstituteId,
+                    InstituteName = inst?.Name ?? "Apex Coaching Academy",
+                    InstituteCode = inst?.InstituteCode ?? "INST001",
                     BranchId = user.BranchId,
                     BranchName = branch?.Name,
                     FullName = user.FullName,

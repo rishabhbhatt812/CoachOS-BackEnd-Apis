@@ -625,6 +625,61 @@ namespace CoachOS.Infrastructure.Data
                 context.Vacancies.AddRange(vacancy1, vacancy2);
                 context.SaveChanges();
             }
+
+            // 22. Seed Assignments
+            if (!context.Assignments.IgnoreQueryFilters().Any())
+            {
+                var assign1 = new Assignment
+                {
+                    InstituteId = institute.Id,
+                    CourseId = course1.Id,
+                    BatchId = batch1.Id,
+                    SubjectId = sub1.Id,
+                    Title = "Algebra Equations & Quadratic Functions",
+                    Description = "Solve problems 1 to 25 from Exercise 4.2 with full step-by-step proofs.",
+                    DueDate = DateTime.UtcNow.AddDays(7),
+                    OriginalFileName = "Algebra_Problem_Set_1.pdf",
+                    StoredFileName = "Algebra_Problem_Set_1.pdf",
+                    FilePath = "/notes/Algebra_Problem_Set_1.pdf",
+                    FileType = "pdf",
+                    CreatedByUserId = teacherUser.Id,
+                    IsActive = true
+                };
+                var assign2 = new Assignment
+                {
+                    InstituteId = institute.Id,
+                    CourseId = course1.Id,
+                    BatchId = batch1.Id,
+                    SubjectId = sub1.Id,
+                    Title = "Newton Laws of Motion & Friction Worksheet",
+                    Description = "Complete the numericals on inclined planes, pulley systems, and tension forces.",
+                    DueDate = DateTime.UtcNow.AddDays(12),
+                    OriginalFileName = "Physics_Unit2_Worksheet.pdf",
+                    StoredFileName = "Physics_Unit2_Worksheet.pdf",
+                    FilePath = "/notes/Physics_Unit2_Worksheet.pdf",
+                    FileType = "pdf",
+                    CreatedByUserId = teacherUser.Id,
+                    IsActive = true
+                };
+                var assign3 = new Assignment
+                {
+                    InstituteId = institute.Id,
+                    CourseId = course2.Id,
+                    BatchId = batch2.Id,
+                    SubjectId = sub4.Id,
+                    Title = "Chemical Reactions & Balancing Equations",
+                    Description = "Balance all redox and precipitation equations provided in chapter notes.",
+                    DueDate = DateTime.UtcNow.AddDays(15),
+                    OriginalFileName = "Chemistry_Balancing_Ex.pdf",
+                    StoredFileName = "Chemistry_Balancing_Ex.pdf",
+                    FilePath = "/notes/Chemistry_Balancing_Ex.pdf",
+                    FileType = "pdf",
+                    CreatedByUserId = teacherUser.Id,
+                    IsActive = true
+                };
+                context.Assignments.AddRange(assign1, assign2, assign3);
+                context.SaveChanges();
+            }
         }
     }
 }
