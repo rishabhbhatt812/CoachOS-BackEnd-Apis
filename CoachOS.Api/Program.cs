@@ -163,6 +163,40 @@ using (var scope = app.Services.CreateScope())
             logger.LogWarning(migEx, "Migration warning, continuing with ensure created / seeding...");
         }
 
+        try
+        {
+            context.Database.ExecuteSqlRaw(@"
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Vacancies]') AND name = 'ApplicationFee')
+                BEGIN
+                    ALTER TABLE [Vacancies] ADD [ApplicationFee] nvarchar(max) NULL;
+                END;
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Vacancies]') AND name = 'EligibilityDetails')
+                BEGIN
+                    ALTER TABLE [Vacancies] ADD [EligibilityDetails] nvarchar(max) NULL;
+                END;
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Vacancies]') AND name = 'NotificationPdfUrl')
+                BEGIN
+                    ALTER TABLE [Vacancies] ADD [NotificationPdfUrl] nvarchar(max) NULL;
+                END;
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Vacancies]') AND name = 'NotificationSent')
+                BEGIN
+                    ALTER TABLE [Vacancies] ADD [NotificationSent] bit NOT NULL DEFAULT 0;
+                END;
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Vacancies]') AND name = 'SalaryRange')
+                BEGIN
+                    ALTER TABLE [Vacancies] ADD [SalaryRange] nvarchar(max) NULL;
+                END;
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Vacancies]') AND name = 'TotalPosts')
+                BEGIN
+                    ALTER TABLE [Vacancies] ADD [TotalPosts] nvarchar(max) NULL;
+                END;
+            ");
+        }
+        catch (Exception schemaEx)
+        {
+            logger.LogWarning(schemaEx, "Schema update notice.");
+        }
+
         CoachOS.Infrastructure.Data.DbSeeder.Seed(context);
 
         // Seed permissions

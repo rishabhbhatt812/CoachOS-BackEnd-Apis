@@ -6,6 +6,8 @@ namespace CoachOS.Application.Features.Communication.Dtos
     public class DetailedVacancyDto
     {
         public Guid Id { get; set; }
+        public Guid? InstituteId { get; set; }
+        public string? InstituteName { get; set; }
         public string Title { get; set; } = string.Empty;
         public string? Department { get; set; }
         public string ExamCategory { get; set; } = string.Empty;
@@ -30,6 +32,7 @@ namespace CoachOS.Application.Features.Communication.Dtos
 
     public class CreateDetailedVacancyRequest
     {
+        public Guid? InstituteId { get; set; }
         public string Title { get; set; } = string.Empty;
         public string? Department { get; set; }
         public string ExamCategory { get; set; } = string.Empty;
