@@ -28,13 +28,16 @@ namespace CoachOS.Api.Controllers.Admin
         [HttpGet]
         public async Task<IActionResult> GetBranches()
         {
-            var instId = _currentUserService.InstituteId;
-            if (instId == null) return BadRequest(ApiResponse<List<BranchDto>>.Fail("Institute context missing."));
-
             var branches = await _unitOfWork.Repository<Branch>().GetAllAsync();
+            var institutes = await _unitOfWork.Repository<CoachOS.Domain.Tenancy.Institute>().GetAllAsync();
+            var instMap = institutes.ToDictionary(i => i.Id);
+
             var dtos = branches.Select(b => new BranchDto
             {
                 Id = b.Id,
+                InstituteId = b.InstituteId,
+                InstituteName = instMap.TryGetValue(b.InstituteId, out var inst) ? inst.Name : "Apex Coaching Academy",
+                InstituteCode = instMap.TryGetValue(b.InstituteId, out var instCode) ? instCode.InstituteCode : "INST001",
                 Name = b.Name,
                 Code = b.Code,
                 Address = b.Address,
@@ -51,9 +54,14 @@ namespace CoachOS.Api.Controllers.Admin
             var branch = await _unitOfWork.Repository<Branch>().GetByIdAsync(id);
             if (branch == null) return NotFound(ApiResponse<BranchDto>.Fail("Branch not found."));
 
+            var institute = await _unitOfWork.Repository<CoachOS.Domain.Tenancy.Institute>().GetByIdAsync(branch.InstituteId);
+
             var dto = new BranchDto
             {
                 Id = branch.Id,
+                InstituteId = branch.InstituteId,
+                InstituteName = institute?.Name ?? "Apex Coaching Academy",
+                InstituteCode = institute?.InstituteCode ?? "INST001",
                 Name = branch.Name,
                 Code = branch.Code,
                 Address = branch.Address,
@@ -67,8 +75,12 @@ namespace CoachOS.Api.Controllers.Admin
         [HttpPost]
         public async Task<IActionResult> CreateBranch([FromBody] CreateBranchDto request)
         {
-            var instId = _currentUserService.InstituteId;
-            if (instId == null) return BadRequest(ApiResponse<BranchDto>.Fail("Institute context missing."));
+            var instId = (request.InstituteId.HasValue && request.InstituteId.Value != Guid.Empty) 
+                ? request.InstituteId 
+                : _currentUserService.InstituteId;
+
+            if (instId == null || instId.Value == Guid.Empty) 
+                return BadRequest(ApiResponse<BranchDto>.Fail("Institute context or selection is required."));
 
             var branch = new Branch
             {
@@ -83,9 +95,14 @@ namespace CoachOS.Api.Controllers.Admin
             await _unitOfWork.Repository<Branch>().AddAsync(branch);
             await _unitOfWork.SaveChangesAsync();
 
+            var institute = await _unitOfWork.Repository<CoachOS.Domain.Tenancy.Institute>().GetByIdAsync(branch.InstituteId);
+
             var dto = new BranchDto
             {
                 Id = branch.Id,
+                InstituteId = branch.InstituteId,
+                InstituteName = institute?.Name,
+                InstituteCode = institute?.InstituteCode,
                 Name = branch.Name,
                 Code = branch.Code,
                 Address = branch.Address,
@@ -111,9 +128,14 @@ namespace CoachOS.Api.Controllers.Admin
             _unitOfWork.Repository<Branch>().Update(branch);
             await _unitOfWork.SaveChangesAsync();
 
+            var institute = await _unitOfWork.Repository<CoachOS.Domain.Tenancy.Institute>().GetByIdAsync(branch.InstituteId);
+
             var dto = new BranchDto
             {
                 Id = branch.Id,
+                InstituteId = branch.InstituteId,
+                InstituteName = institute?.Name,
+                InstituteCode = institute?.InstituteCode,
                 Name = branch.Name,
                 Code = branch.Code,
                 Address = branch.Address,
@@ -140,6 +162,9 @@ namespace CoachOS.Api.Controllers.Admin
     public class BranchDto
     {
         public Guid Id { get; set; }
+        public Guid InstituteId { get; set; }
+        public string? InstituteName { get; set; }
+        public string? InstituteCode { get; set; }
         public string Name { get; set; } = string.Empty;
         public string Code { get; set; } = string.Empty;
         public string? Address { get; set; }
@@ -149,6 +174,7 @@ namespace CoachOS.Api.Controllers.Admin
 
     public class CreateBranchDto
     {
+        public Guid? InstituteId { get; set; }
         public string Name { get; set; } = string.Empty;
         public string Code { get; set; } = string.Empty;
         public string? Address { get; set; }

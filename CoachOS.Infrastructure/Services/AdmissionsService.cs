@@ -147,7 +147,6 @@ namespace CoachOS.Infrastructure.Services
                 // 2. Create Parent
                 var parent = new Parent
                 {
-                    InstituteId = student.InstituteId,
                     FullName = request.ParentName,
                     Mobile = request.ParentMobile,
                     Email = request.ParentEmail,
@@ -158,7 +157,6 @@ namespace CoachOS.Infrastructure.Services
 
                 var studentParent = new StudentParent
                 {
-                    InstituteId = student.InstituteId,
                     StudentId = student.Id,
                     ParentId = parent.Id,
                     RelationshipType = request.ParentRelationship

@@ -14,6 +14,12 @@ namespace CoachOS.Domain.Communication
         public DateOnly LastDate { get; set; }
         public string? OfficialLink { get; set; }
         public string? Description { get; set; }
+        public string? TotalPosts { get; set; }
+        public string? SalaryRange { get; set; }
+        public string? ApplicationFee { get; set; }
+        public string? NotificationPdfUrl { get; set; }
+        public string? EligibilityDetails { get; set; }
+        public bool NotificationSent { get; set; } = false;
         public bool IsActive { get; set; } = true;
     }
 }

@@ -5,6 +5,9 @@ namespace CoachOS.Application.Features.Academics.Dtos
     public class BatchDto
     {
         public Guid Id { get; set; }
+        public Guid InstituteId { get; set; }
+        public string? InstituteName { get; set; }
+        public string? InstituteCode { get; set; }
         public string Name { get; set; } = string.Empty;
         public Guid CourseId { get; set; }
         public string CourseName { get; set; } = string.Empty;
@@ -30,6 +33,7 @@ namespace CoachOS.Application.Features.Academics.Dtos
 
     public class CreateBatchRequest
     {
+        public Guid? InstituteId { get; set; }
         public string Name { get; set; } = string.Empty;
         public Guid CourseId { get; set; }
         public Guid? SubjectId { get; set; }

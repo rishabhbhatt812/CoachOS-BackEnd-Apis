@@ -25,6 +25,7 @@ namespace CoachOS.Application.Features.Academics
         {
             var course = new Course
             {
+                InstituteId = request.InstituteId ?? Guid.Empty,
                 Name = request.Name,
                 Description = request.Description,
                 CourseCode = request.CourseCode,
@@ -45,6 +46,7 @@ namespace CoachOS.Application.Features.Academics
                 {
                     var subject = new Subject
                     {
+                        InstituteId = course.InstituteId,
                         CourseId = course.Id,
                         Name = subName,
                         IsActive = true
@@ -57,6 +59,13 @@ namespace CoachOS.Application.Features.Academics
 
             var dto = course.Adapt<CourseDto>();
             dto.Subjects = subjectsList.Adapt<List<SubjectDto>>();
+
+            var institute = await _unitOfWork.Repository<CoachOS.Domain.Tenancy.Institute>().GetByIdAsync(course.InstituteId);
+            if (institute != null)
+            {
+                dto.InstituteName = institute.Name;
+                dto.InstituteCode = institute.InstituteCode;
+            }
 
             return ApiResponse<CourseDto>.Ok(dto, "Course created successfully.");
         }
@@ -71,11 +80,16 @@ namespace CoachOS.Application.Features.Academics
 
                 var coursesPaged = await _unitOfWork.Repository<Course>().GetPagedAsync(paginationParams);
                 var subjects = await _unitOfWork.Repository<Subject>().GetAllAsync();
+                var institutes = await _unitOfWork.Repository<CoachOS.Domain.Tenancy.Institute>().GetAllAsync();
+                var instMap = institutes.ToDictionary(i => i.Id);
 
                 var coursesDto = (coursesPaged?.Data ?? new List<Course>()).Select(c =>
                 {
                     var dto = c.Adapt<CourseDto>();
                     dto.Subjects = (subjects ?? new List<Subject>()).Where(s => s.CourseId == c.Id).Adapt<List<SubjectDto>>();
+                    dto.InstituteId = c.InstituteId;
+                    dto.InstituteName = instMap.TryGetValue(c.InstituteId, out var inst) ? inst.Name : "Apex Coaching Academy";
+                    dto.InstituteCode = instMap.TryGetValue(c.InstituteId, out var instCode) ? instCode.InstituteCode : "INST001";
                     return dto;
                 }).ToList();
 
@@ -304,10 +318,15 @@ namespace CoachOS.Application.Features.Academics
             var users = await _unitOfWork.Repository<User>().GetAllAsync();
             var teacherProfiles = await _unitOfWork.Repository<TeacherProfile>().GetAllAsync();
             var teacherBatches = await _unitOfWork.Repository<TeacherBatch>().GetAllAsync();
+            var institutes = await _unitOfWork.Repository<CoachOS.Domain.Tenancy.Institute>().GetAllAsync();
+            var instMap = institutes.ToDictionary(i => i.Id);
             
             var batchesDto = batchesPaged.Data.Select(b =>
             {
                 var dto = b.Adapt<BatchDto>();
+                dto.InstituteId = b.InstituteId;
+                dto.InstituteName = instMap.TryGetValue(b.InstituteId, out var inst) ? inst.Name : "Apex Coaching Academy";
+                dto.InstituteCode = instMap.TryGetValue(b.InstituteId, out var instCode) ? instCode.InstituteCode : "INST001";
                 dto.CourseName = courses.FirstOrDefault(c => c.Id == b.CourseId)?.Name ?? "Unknown";
 
                 var bTBs = teacherBatches.Where(tb => tb.BatchId == b.Id && tb.IsActive).ToList();

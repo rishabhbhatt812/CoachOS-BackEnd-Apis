@@ -598,31 +598,75 @@ namespace CoachOS.Infrastructure.Data
                 {
                     InstituteId = institute.Id,
                     Title = "SSC CGL 2026 Examination Notice",
-                    Department = "Staff Selection Commission",
-                    ExamCategory = "SSC",
+                    Department = "Staff Selection Commission (Govt of India)",
+                    ExamCategory = "SSC & Central Govt",
                     QualificationRequired = "Bachelor's Degree",
                     AgeLimit = "18-32 Years",
+                    TotalPosts = "17,727 Posts",
+                    SalaryRange = "₹44,900 - ₹1,42,400 (Pay Level 7)",
+                    ApplicationFee = "₹100 (Exempted for SC/ST/Women)",
                     StartDate = new DateOnly(2026, 6, 1),
-                    LastDate = new DateOnly(2026, 7, 15),
+                    LastDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(25)),
                     OfficialLink = "https://ssc.gov.in",
-                    Description = "Staff Selection Commission (SSC) has released the official notification for Combined Graduate Level (CGL) Exam 2026 for various Group B and Group C posts.",
+                    Description = "Staff Selection Commission (SSC) has released the official notification for Combined Graduate Level (CGL) Exam 2026 for various Group B and Group C posts in Ministries and Departments.",
+                    EligibilityDetails = "Must possess a Bachelor's Degree in any discipline from a recognized University.",
                     IsActive = true
                 };
                 var vacancy2 = new Vacancy
                 {
                     InstituteId = institute.Id,
-                    Title = "IBPS PO/MT XVI Recruitment 2026",
+                    Title = "IBPS PO / MT XVI Recruitment 2026",
                     Department = "Institute of Banking Personnel Selection",
-                    ExamCategory = "Banking",
+                    ExamCategory = "Banking & Insurance",
                     QualificationRequired = "Any Graduate",
                     AgeLimit = "20-30 Years",
+                    TotalPosts = "4,455 Posts",
+                    SalaryRange = "₹52,000 - ₹68,000 / month approx.",
+                    ApplicationFee = "₹850 (₹175 for SC/ST/PwBD)",
                     StartDate = new DateOnly(2026, 8, 1),
-                    LastDate = new DateOnly(2026, 8, 31),
+                    LastDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(18)),
                     OfficialLink = "https://ibps.in",
-                    Description = "IBPS PO recruitment notification for probationary officers/management trainees in participating public sector banks.",
+                    Description = "IBPS PO recruitment notification for probationary officers/management trainees in participating public sector banks across India.",
+                    EligibilityDetails = "A Degree (Graduation) in any discipline from a University recognized by the Govt. Of India.",
                     IsActive = true
                 };
-                context.Vacancies.AddRange(vacancy1, vacancy2);
+                var vacancy3 = new Vacancy
+                {
+                    InstituteId = institute.Id,
+                    Title = "NDA & NA Examination (II) 2026",
+                    Department = "Union Public Service Commission (UPSC)",
+                    ExamCategory = "Defence & Armed Forces",
+                    QualificationRequired = "12th Pass",
+                    AgeLimit = "16.5 - 19.5 Years",
+                    TotalPosts = "404 Posts",
+                    SalaryRange = "₹56,100 / month (Cadet Training Stipend)",
+                    ApplicationFee = "₹100 (Free for Female/SC/ST)",
+                    StartDate = new DateOnly(2026, 5, 15),
+                    LastDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(12)),
+                    OfficialLink = "https://upsc.gov.in",
+                    Description = "National Defence Academy and Naval Academy Examination (II) 2026 for admission to Army, Navy and Air Force wings of NDA.",
+                    EligibilityDetails = "12th Class pass of the 10+2 pattern of School Education with Physics, Chemistry and Mathematics for Air Force and Navy.",
+                    IsActive = true
+                };
+                var vacancy4 = new Vacancy
+                {
+                    InstituteId = institute.Id,
+                    Title = "RRB Non-Technical Popular Categories (NTPC) 2026",
+                    Department = "Railway Recruitment Boards (Indian Railways)",
+                    ExamCategory = "Railways",
+                    QualificationRequired = "12th Pass / Graduate",
+                    AgeLimit = "18-33 Years",
+                    TotalPosts = "11,558 Posts",
+                    SalaryRange = "₹19,900 - ₹35,400 (Level 2 to Level 5)",
+                    ApplicationFee = "₹500 (₹250 refundable on CBT-1 appearance)",
+                    StartDate = new DateOnly(2026, 9, 1),
+                    LastDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(35)),
+                    OfficialLink = "https://indianrailways.gov.in",
+                    Description = "Recruitment for various NTPC (Graduate & Undergraduate) posts such as Station Master, Goods Guard, Junior Clerk, Typist, and Commercial Apprentice.",
+                    EligibilityDetails = "12th (+2 Stage) or equivalent for Under Graduate Posts, and University Degree or its equivalent for Graduate level posts.",
+                    IsActive = true
+                };
+                context.Vacancies.AddRange(vacancy1, vacancy2, vacancy3, vacancy4);
                 context.SaveChanges();
             }
 

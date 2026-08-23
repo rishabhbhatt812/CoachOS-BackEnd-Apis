@@ -290,23 +290,79 @@ namespace CoachOS.Application.Features.StudentPortal
 
         public async Task<ApiResponse<object>> GetStudentVacanciesAsync(Guid studentId)
         {
+            studentId = await ResolveStudentIdAsync(studentId);
+            var student = await _unitOfWork.Repository<Student>().GetByIdAsync(studentId);
+            var studentQual = student?.Qualification ?? "High School / Intermediate";
+
             var vacancies = (await _unitOfWork.Repository<Vacancy>().GetAllAsync())
                 .Where(x => x.IsActive)
-                .OrderByDescending(x => x.LastDate)
-                .Select(v => new {
+                .OrderBy(x => x.LastDate)
+                .ToList();
+
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+            bool MatchesQualification(string? sQual, string? vQual)
+            {
+                if (string.IsNullOrWhiteSpace(vQual) || vQual.Equals("All", StringComparison.OrdinalIgnoreCase) || vQual.Equals("Any", StringComparison.OrdinalIgnoreCase) || vQual.Contains("Any", StringComparison.OrdinalIgnoreCase))
+                    return true;
+
+                if (string.IsNullOrWhiteSpace(sQual))
+                    return true;
+
+                var s = sQual.ToLowerInvariant();
+                var v = vQual.ToLowerInvariant();
+
+                if (s.Contains(v) || v.Contains(s))
+                    return true;
+
+                if ((v.Contains("graduate") || v.Contains("degree") || v.Contains("bachelor") || v.Contains("b.tech") || v.Contains("b.sc") || v.Contains("b.a")) &&
+                    (s.Contains("graduate") || s.Contains("degree") || s.Contains("bachelor") || s.Contains("b.tech") || s.Contains("b.sc") || s.Contains("b.a") || s.Contains("engineering")))
+                    return true;
+
+                if ((v.Contains("12th") || v.Contains("intermediate") || v.Contains("higher secondary") || v.Contains("10+2")) &&
+                    (s.Contains("12th") || s.Contains("intermediate") || s.Contains("graduate") || s.Contains("degree") || s.Contains("bachelor")))
+                    return true;
+
+                if (v.Contains("10th") || v.Contains("matric") || v.Contains("secondary"))
+                    return true;
+
+                return false;
+            }
+
+            var result = vacancies.Select(v =>
+            {
+                var daysRemaining = v.LastDate.DayNumber - today.DayNumber;
+                var isMatched = MatchesQualification(studentQual, v.QualificationRequired);
+
+                return new
+                {
                     v.Id,
                     v.Title,
                     v.Department,
                     v.ExamCategory,
                     v.QualificationRequired,
                     v.AgeLimit,
+                    TotalPosts = v.TotalPosts ?? "Multiple Openings",
+                    v.SalaryRange,
+                    v.ApplicationFee,
                     StartDate = v.StartDate?.ToString("yyyy-MM-dd"),
                     LastDate = v.LastDate.ToString("yyyy-MM-dd"),
                     v.OfficialLink,
-                    v.Description
-                }).ToList();
+                    v.Description,
+                    v.EligibilityDetails,
+                    NotificationPdfUrl = !string.IsNullOrEmpty(v.NotificationPdfUrl) ? $"/api/admin/vacancies/download/{v.Id}" : null,
+                    IsMatched = isMatched,
+                    MatchBadgeText = isMatched ? "✓ Matched for Your Qualification" : "General Opportunity",
+                    DaysRemaining = daysRemaining,
+                    IsExpired = daysRemaining < 0
+                };
+            }).ToList();
 
-            return ApiResponse<object>.Ok(vacancies);
+            return ApiResponse<object>.Ok(new
+            {
+                StudentQualification = studentQual,
+                Vacancies = result
+            });
         }
     }
 }

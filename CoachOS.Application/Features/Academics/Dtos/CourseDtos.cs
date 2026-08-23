@@ -6,6 +6,9 @@ namespace CoachOS.Application.Features.Academics.Dtos
     public class CourseDto
     {
         public Guid Id { get; set; }
+        public Guid InstituteId { get; set; }
+        public string? InstituteName { get; set; }
+        public string? InstituteCode { get; set; }
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public string CourseCode { get; set; } = string.Empty;
@@ -19,6 +22,7 @@ namespace CoachOS.Application.Features.Academics.Dtos
 
     public class CreateCourseRequest
     {
+        public Guid? InstituteId { get; set; }
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public string CourseCode { get; set; } = string.Empty;
