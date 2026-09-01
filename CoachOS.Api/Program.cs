@@ -65,6 +65,8 @@ builder.Services.AddSingleton<IDbConnectionFactory, SqlConnectionFactory>();
 
 // Services DI
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddHttpClient();
+builder.Services.Configure<CoachOS.Infrastructure.Configurations.CloudinarySettings>(builder.Configuration.GetSection("Cloudinary"));
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<IModuleAccessService, ModuleAccessService>();
 builder.Services.AddScoped<IFileStorageService, FileStorageService>();

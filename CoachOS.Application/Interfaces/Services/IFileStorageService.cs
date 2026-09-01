@@ -8,5 +8,7 @@ namespace CoachOS.Application.Interfaces.Services
         Task<string> SaveFileAsync(Stream fileStream, string fileName, string folderName);
         Task<byte[]> GetFileAsync(string filePath);
         void DeleteFile(string filePath);
+        Task DeleteFileAsync(string filePath);
+        string GetFileUrl(string filePath);
     }
 }
