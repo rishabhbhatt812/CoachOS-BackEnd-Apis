@@ -7,7 +7,7 @@ namespace CoachOS.Api.Controllers.Admin
 {
     [ApiController]
     [Route("api/admin/[controller]")]
-    [Authorize(Roles = "INSTITUTE_ADMIN,GLOBAL_ADMIN,SUPER_ADMIN,ACCOUNTANT")]
+    [Authorize(Roles = "INSTITUTE_ADMIN,GLOBAL_ADMIN,SUPER_ADMIN,ACCOUNTANT,ADMIN,BRANCH_ADMIN")]
     [ModuleAccess("FEES")]
     public class FeesController : ControllerBase
     {

@@ -242,6 +242,7 @@ namespace CoachOS.Infrastructure.Data
 
             var globalAdminUser = GetOrSeedUser("globaladmin@apex.com", "Apex Global Admin", globalAdminRole.Id, "Password123");
             var rishabhGlobalAdmin = GetOrSeedUser("rishabhbhatt437@gmail.com", "rishabh", globalAdminRole.Id, "Password123");
+            var rishabhSingleT = GetOrSeedUser("rishabhbhat437@gmail.com", "rishabh", globalAdminRole.Id, "Password123");
             var superAdminUser = GetOrSeedUser("superadmin@apex.com", "Apex Super Admin", superAdminRole.Id, "Password123");
             var adminUser = GetOrSeedUser("admin@apex.com", "Apex Admin", adminRole.Id, "Password123");
             var teacherUser = GetOrSeedUser("teacher@apex.com", "John Doe", teacherRole.Id, "Password123");

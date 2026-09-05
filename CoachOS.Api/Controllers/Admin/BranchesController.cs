@@ -13,7 +13,7 @@ namespace CoachOS.Api.Controllers.Admin
 {
     [ApiController]
     [Route("api/admin/branches")]
-    [Authorize(Roles = "INSTITUTE_ADMIN,GLOBAL_ADMIN,SUPER_ADMIN")]
+    [Authorize(Roles = "INSTITUTE_ADMIN,GLOBAL_ADMIN,SUPER_ADMIN,ADMIN,BRANCH_ADMIN")]
     public class BranchesController : ControllerBase
     {
         private readonly IUnitOfWork _unitOfWork;

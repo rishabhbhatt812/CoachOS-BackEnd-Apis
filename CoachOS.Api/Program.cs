@@ -192,6 +192,80 @@ using (var scope = app.Services.CreateScope())
                 BEGIN
                     ALTER TABLE [Vacancies] ADD [TotalPosts] nvarchar(max) NULL;
                 END;
+
+                -- Ensure Assignments columns & nullability
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Assignments]') AND name = 'OriginalFileName')
+                BEGIN
+                    ALTER TABLE [Assignments] ADD [OriginalFileName] nvarchar(max) NULL;
+                END;
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Assignments]') AND name = 'StoredFileName')
+                BEGIN
+                    ALTER TABLE [Assignments] ADD [StoredFileName] nvarchar(max) NULL;
+                END;
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Assignments]') AND name = 'FilePath')
+                BEGIN
+                    ALTER TABLE [Assignments] ADD [FilePath] nvarchar(max) NULL;
+                END;
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Assignments]') AND name = 'FileType')
+                BEGIN
+                    ALTER TABLE [Assignments] ADD [FileType] nvarchar(max) NULL;
+                END;
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Assignments]') AND name = 'FileSizeInBytes')
+                BEGIN
+                    ALTER TABLE [Assignments] ADD [FileSizeInBytes] bigint NULL;
+                END;
+
+                ALTER TABLE [Assignments] ALTER COLUMN [SubjectId] uniqueidentifier NULL;
+                ALTER TABLE [Assignments] ALTER COLUMN [CourseId] uniqueidentifier NULL;
+                ALTER TABLE [Assignments] ALTER COLUMN [BatchId] uniqueidentifier NULL;
+                ALTER TABLE [Assignments] ALTER COLUMN [MaxMarks] decimal(18,2) NULL;
+
+                -- Ensure AssignmentSubmissions columns & nullability
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[AssignmentSubmissions]') AND name = 'OriginalFileName')
+                BEGIN
+                    ALTER TABLE [AssignmentSubmissions] ADD [OriginalFileName] nvarchar(max) NULL;
+                END;
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[AssignmentSubmissions]') AND name = 'StoredFileName')
+                BEGIN
+                    ALTER TABLE [AssignmentSubmissions] ADD [StoredFileName] nvarchar(max) NULL;
+                END;
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[AssignmentSubmissions]') AND name = 'FilePath')
+                BEGIN
+                    ALTER TABLE [AssignmentSubmissions] ADD [FilePath] nvarchar(max) NULL;
+                END;
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[AssignmentSubmissions]') AND name = 'FileType')
+                BEGIN
+                    ALTER TABLE [AssignmentSubmissions] ADD [FileType] nvarchar(max) NULL;
+                END;
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[AssignmentSubmissions]') AND name = 'FileSizeInBytes')
+                BEGIN
+                    ALTER TABLE [AssignmentSubmissions] ADD [FileSizeInBytes] bigint NULL;
+                END;
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[AssignmentSubmissions]') AND name = 'SubmittedAt')
+                BEGIN
+                    ALTER TABLE [AssignmentSubmissions] ADD [SubmittedAt] datetime2 NULL;
+                END;
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[AssignmentSubmissions]') AND name = 'StudentNotes')
+                BEGIN
+                    ALTER TABLE [AssignmentSubmissions] ADD [StudentNotes] nvarchar(max) NULL;
+                END;
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[AssignmentSubmissions]') AND name = 'MarksAwarded')
+                BEGIN
+                    ALTER TABLE [AssignmentSubmissions] ADD [MarksAwarded] int NULL;
+                END;
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[AssignmentSubmissions]') AND name = 'TeacherRemarks')
+                BEGIN
+                    ALTER TABLE [AssignmentSubmissions] ADD [TeacherRemarks] nvarchar(max) NULL;
+                END;
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[AssignmentSubmissions]') AND name = 'ReviewedAt')
+                BEGIN
+                    ALTER TABLE [AssignmentSubmissions] ADD [ReviewedAt] datetime2 NULL;
+                END;
+
+                ALTER TABLE [AssignmentSubmissions] ALTER COLUMN [SubmissionDate] datetime2 NULL;
+                ALTER TABLE [AssignmentSubmissions] ALTER COLUMN [AttachmentUrl] nvarchar(max) NULL;
+                ALTER TABLE [AssignmentSubmissions] ALTER COLUMN [AttachmentFileName] nvarchar(max) NULL;
+                ALTER TABLE [AssignmentSubmissions] ALTER COLUMN [Status] nvarchar(max) NULL;
             ");
         }
         catch (Exception schemaEx)

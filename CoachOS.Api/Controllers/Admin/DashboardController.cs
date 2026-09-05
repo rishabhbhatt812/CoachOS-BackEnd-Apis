@@ -7,7 +7,7 @@ namespace CoachOS.Api.Controllers.Admin
 {
     [ApiController]
     [Route("api/admin/[controller]")]
-    [Authorize(Roles = "INSTITUTE_ADMIN,GLOBAL_ADMIN,SUPER_ADMIN")]
+    [Authorize(Roles = "INSTITUTE_ADMIN,GLOBAL_ADMIN,SUPER_ADMIN,ADMIN,BRANCH_ADMIN,TEACHER")]
     public class DashboardController : ControllerBase
     {
         private readonly IReportService _reportService;
@@ -25,7 +25,7 @@ namespace CoachOS.Api.Controllers.Admin
         }
 
         [HttpGet("global-metrics")]
-        [Authorize(Roles = "GLOBAL_ADMIN,SUPER_ADMIN")]
+        [Authorize(Roles = "GLOBAL_ADMIN,SUPER_ADMIN,ADMIN")]
         public async Task<IActionResult> GetGlobalMetrics()
         {
             var metrics = await _reportService.GetGlobalMetricsAsync();
