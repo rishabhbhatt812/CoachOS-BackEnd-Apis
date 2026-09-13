@@ -22,10 +22,11 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:4200")
+        var frontendUrl = builder.Configuration["AppUrls:FrontendUrl"];
+        policy.SetIsOriginAllowed(origin => true)
               .AllowAnyHeader()
               .AllowAnyMethod()
-              .AllowCredentials(); // Often needed if using cookies or specific headers
+              .AllowCredentials();
     });
 });
 
